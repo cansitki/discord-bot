@@ -1,8 +1,10 @@
-"""Tests for bot.models (GuildConfig, ActionLog)."""
+"""Tests for bot.models (GuildConfig, ActionLog, ChannelRepo)."""
 
 from __future__ import annotations
 
-from bot.models import ActionLog, GuildConfig
+import pytest
+
+from bot.models import ActionLog, ChannelRepo, GuildConfig
 
 
 class _FakeRow(dict):
@@ -106,3 +108,133 @@ class TestActionLog:
         """ActionLog defaults id to None (assigned by database)."""
         log = ActionLog(guild_id=1, user_id=2, action_type="test", target="t")
         assert log.id is None
+
+
+class TestChannelRepo:
+    """ChannelRepo dataclass, from_row, and repo_full_name."""
+
+    def test_from_row_full(self):
+        """ChannelRepo.from_row constructs from a row with all fields."""
+        row = _FakeRow(
+            guild_id=111,
+            channel_id=222,
+            repo_owner="octocat",
+            repo_name="hello-world",
+            linked_by=333,
+            linked_at="2025-06-01T12:00:00",
+        )
+        cr = ChannelRepo.from_row(row)
+        assert cr.guild_id == 111
+        assert cr.channel_id == 222
+        assert cr.repo_owner == "octocat"
+        assert cr.repo_name == "hello-world"
+        assert cr.linked_by == 333
+        assert cr.linked_at == "2025-06-01T12:00:00"
+
+    def test_from_row_nullable_linked_at(self):
+        """ChannelRepo.from_row handles None for linked_at."""
+        row = _FakeRow(
+            guild_id=1,
+            channel_id=2,
+            repo_owner="owner",
+            repo_name="repo",
+            linked_by=3,
+            linked_at=None,
+        )
+        cr = ChannelRepo.from_row(row)
+        assert cr.linked_at is None
+
+    def test_repo_full_name(self):
+        """ChannelRepo.repo_full_name returns 'owner/repo'."""
+        cr = ChannelRepo(
+            guild_id=1,
+            channel_id=2,
+            repo_owner="octocat",
+            repo_name="hello-world",
+            linked_by=3,
+        )
+        assert cr.repo_full_name == "octocat/hello-world"
+
+    def test_repo_full_name_various(self):
+        """repo_full_name works with different owner/repo combinations."""
+        cr = ChannelRepo(
+            guild_id=1,
+            channel_id=2,
+            repo_owner="my-org",
+            repo_name="my-project.js",
+            linked_by=3,
+        )
+        assert cr.repo_full_name == "my-org/my-project.js"
+
+    def test_default_linked_at_none(self):
+        """ChannelRepo defaults linked_at to None."""
+        cr = ChannelRepo(
+            guild_id=1,
+            channel_id=2,
+            repo_owner="a",
+            repo_name="b",
+            linked_by=3,
+        )
+        assert cr.linked_at is None
+
+
+class TestChannelRepoDatabase:
+    """ChannelRepo round-trip through the database after migration 003."""
+
+    async def test_insert_and_retrieve(self, db_in_memory, migrations_dir):
+        """ChannelRepo round-trips through the channel_repos table."""
+        await db_in_memory.run_migrations(migrations_dir)
+
+        await db_in_memory.execute(
+            "INSERT INTO channel_repos (guild_id, channel_id, repo_owner, repo_name, linked_by) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (111, 222, "octocat", "hello-world", 333),
+        )
+
+        row = await db_in_memory.fetchone(
+            "SELECT * FROM channel_repos WHERE guild_id = ? AND channel_id = ?",
+            (111, 222),
+        )
+        assert row is not None
+        cr = ChannelRepo.from_row(row)
+        assert cr.guild_id == 111
+        assert cr.channel_id == 222
+        assert cr.repo_owner == "octocat"
+        assert cr.repo_name == "hello-world"
+        assert cr.linked_by == 333
+        assert cr.linked_at is not None  # DB default sets datetime('now')
+        assert cr.repo_full_name == "octocat/hello-world"
+
+    async def test_primary_key_enforced(self, db_in_memory, migrations_dir):
+        """channel_repos PK on (guild_id, channel_id) rejects duplicates."""
+        import sqlite3
+
+        await db_in_memory.run_migrations(migrations_dir)
+
+        await db_in_memory.execute(
+            "INSERT INTO channel_repos (guild_id, channel_id, repo_owner, repo_name, linked_by) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (1, 2, "owner", "repo", 3),
+        )
+
+        with pytest.raises(sqlite3.IntegrityError):
+            await db_in_memory.execute(
+                "INSERT INTO channel_repos (guild_id, channel_id, repo_owner, repo_name, linked_by) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (1, 2, "other-owner", "other-repo", 4),
+            )
+
+    async def test_channel_repos_schema_columns(self, db_in_memory, migrations_dir):
+        """Migration 003 creates channel_repos with expected columns."""
+        await db_in_memory.run_migrations(migrations_dir)
+
+        rows = await db_in_memory.fetchall("PRAGMA table_info(channel_repos)")
+        col_names = [row["name"] for row in rows]
+        assert col_names == [
+            "guild_id",
+            "channel_id",
+            "repo_owner",
+            "repo_name",
+            "linked_by",
+            "linked_at",
+        ]

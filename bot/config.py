@@ -14,6 +14,7 @@ class Config:
 
     Required vars: DISCORD_BOT_TOKEN, ANTHROPIC_API_KEY.
     Optional vars: DATABASE_PATH (default: ./data/bot.db), COMMAND_PREFIX (default: !).
+    Optional GitHub vars: GITHUB_APP_ID, GITHUB_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET.
     """
 
     discord_bot_token: str
@@ -21,6 +22,9 @@ class Config:
     database_path: str
     command_prefix: str
     claude_model: str
+    github_app_id: str | None = None
+    github_private_key: str | None = None
+    github_webhook_secret: str | None = None
 
     @classmethod
     def from_env(cls) -> Config:
@@ -48,6 +52,11 @@ class Config:
         command_prefix = os.getenv("COMMAND_PREFIX", "!")
         claude_model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 
+        # Optional GitHub App credentials — None when missing or empty
+        github_app_id = os.getenv("GITHUB_APP_ID") or None
+        github_private_key = os.getenv("GITHUB_PRIVATE_KEY") or None
+        github_webhook_secret = os.getenv("GITHUB_WEBHOOK_SECRET") or None
+
         # Log loaded variable names (never values) for startup diagnostics
         loaded_vars = ["DISCORD_BOT_TOKEN", "ANTHROPIC_API_KEY"]
         if os.getenv("DATABASE_PATH"):
@@ -56,6 +65,12 @@ class Config:
             loaded_vars.append("COMMAND_PREFIX")
         if os.getenv("CLAUDE_MODEL"):
             loaded_vars.append("CLAUDE_MODEL")
+        if github_app_id:
+            loaded_vars.append("GITHUB_APP_ID")
+        if github_private_key:
+            loaded_vars.append("GITHUB_PRIVATE_KEY")
+        if github_webhook_secret:
+            loaded_vars.append("GITHUB_WEBHOOK_SECRET")
         print(f"Config loaded: {', '.join(loaded_vars)}")
 
         return cls(
@@ -64,4 +79,7 @@ class Config:
             database_path=database_path,
             command_prefix=command_prefix,
             claude_model=claude_model,
+            github_app_id=github_app_id,
+            github_private_key=github_private_key,
+            github_webhook_secret=github_webhook_secret,
         )

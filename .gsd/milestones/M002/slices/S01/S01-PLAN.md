@@ -31,6 +31,7 @@
 - `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py tests/test_models.py tests/test_config.py -v` — all pass
 - `bash scripts/verify-deploy.sh` — all checks pass including new github module import
 - Existing M001 tests still pass: `.venv/bin/python -m pytest tests/ -v` — 206+ tests pass
+- Failure-path diagnostic: `.venv/bin/python -c "from bot.config import Config; import os; os.environ.pop('GITHUB_APP_ID', None); c = Config.from_env(); print('github_app_id:', c.github_app_id)"` — prints `github_app_id: None` confirming graceful degradation when GitHub config is absent
 
 ## Observability / Diagnostics
 
@@ -47,7 +48,7 @@
 
 ## Tasks
 
-- [ ] **T01: Add GitHub config, channel_repos migration, and ChannelRepo model** `est:45m`
+- [x] **T01: Add GitHub config, channel_repos migration, and ChannelRepo model** `est:45m`
   - Why: Every other task in this slice depends on the Config accepting GitHub credentials, the channel_repos table existing, and the ChannelRepo model being available for queries. This is the data foundation.
   - Files: `bot/config.py`, `bot/models.py`, `migrations/003_channel_repos.sql`, `pyproject.toml`, `.env.example`
   - Do: Add optional github_app_id, github_private_key, github_webhook_secret to Config.from_env(). Add ChannelRepo dataclass with from_row(). Create migration 003 with channel_repos schema (guild_id INTEGER, channel_id INTEGER, repo_owner TEXT, repo_name TEXT, linked_by INTEGER, linked_at TEXT, PRIMARY KEY (guild_id, channel_id)). Add PyJWT[crypto] to pyproject.toml dependencies. Update .env.example with GitHub vars. Set up .venv and install dependencies.

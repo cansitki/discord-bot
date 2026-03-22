@@ -87,3 +87,9 @@ Add the data foundation that every other task in this slice depends on: optional
 - `.env.example` — GitHub App section added
 - `tests/test_config.py` — extended with GitHub config tests
 - `tests/test_models.py` — extended with ChannelRepo tests
+
+## Observability Impact
+
+- **Config startup diagnostic log** now includes GITHUB_APP_ID, GITHUB_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET in the loaded vars list when present — a future agent can inspect the Config loaded line to confirm GitHub credentials are loaded.
+- **channel_repos table** is a new queryable surface: `SELECT * FROM channel_repos` shows all active channel-repo bindings. Empty until /link-repo is used.
+- **Failure state**: When GitHub env vars are missing, Config fields are None. Downstream code (T02/T03) should check these fields and log/respond with a clear "GitHub not configured" message. No crash — graceful degradation.
