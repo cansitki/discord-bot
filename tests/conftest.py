@@ -66,3 +66,21 @@ def migrations_dir(tmp_path: Path):
     for f in sorted(src.glob("*.sql")):
         (dest / f.name).write_text(f.read_text())
     return str(dest)
+
+
+@pytest.fixture()
+async def db_with_migrations(tmp_path: Path):
+    """Provide a file-backed DatabaseManager with all real migrations applied.
+
+    Uses the project's migrations/ directory so tests verify the actual
+    migration SQL (including 003_channel_repos.sql).
+    """
+    db_path = str(tmp_path / "test_migrated.db")
+    db = DatabaseManager(db_path)
+    await db.connect()
+
+    migrations_src = Path(__file__).resolve().parent.parent / "migrations"
+    await db.run_migrations(str(migrations_src))
+
+    yield db
+    await db.close()

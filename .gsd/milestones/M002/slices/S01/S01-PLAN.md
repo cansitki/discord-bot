@@ -69,7 +69,7 @@
   - Verify: `.venv/bin/python -c "import bot.cogs.github"` succeeds; `bash scripts/verify-deploy.sh` passes
   - Done when: GitHub cog loads, /link-repo and /unlink-repo commands are registered, bot.py wires everything up, verify-deploy.sh passes
 
-- [ ] **T04: Comprehensive test suite for GitHub cog and integration verification** `est:1h`
+- [x] **T04: Comprehensive test suite for GitHub cog and integration verification** `est:1h`
   - Why: The slice isn't done until every must-have is proven by tests. T02 already tests GitHubClient; this task tests the cog's command logic, database interactions, error handling, and action_log entries.
   - Files: `tests/test_github_cog.py`, `tests/conftest.py`
   - Do: Write tests for /link-repo (success, repo not found, already linked, missing config), /unlink-repo (success, not linked), action_log entries for link/unlink, ChannelRepo database round-trip through migration, error embeds. Mock GitHubClient and discord.py interactions following existing test patterns (test_server_design.py, test_verification.py). Run full test suite to ensure no M001 regressions.

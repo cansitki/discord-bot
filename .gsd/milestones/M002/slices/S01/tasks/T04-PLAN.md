@@ -61,6 +61,12 @@ Write the comprehensive test suite for the GitHub cog's slash commands, database
 - `tests/test_server_design.py` — reference for cog testing patterns
 - `tests/test_verification.py` — reference for cog testing patterns
 
+## Observability Impact
+
+- **No new runtime signals**: This task adds tests, not runtime code. No new log lines, metrics, or inspection surfaces.
+- **Test coverage as inspection surface**: `pytest tests/test_github_cog.py -v` now proves all link/unlink command paths, action_log entries, and database constraints. Future agents can run this to verify GitHub cog behavior.
+- **db_with_migrations fixture**: New conftest fixture runs real migrations, ensuring migration SQL stays valid as a living contract. Any migration regression surfaces as a test failure.
+
 ## Expected Output
 
 - `tests/test_github_cog.py` — comprehensive test file for GitHub cog
