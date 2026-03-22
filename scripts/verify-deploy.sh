@@ -68,6 +68,7 @@ MODULES=(
     "bot.cogs.ai"
     "bot.cogs.server_design"
     "bot.cogs.assistant"
+    "bot.cogs.github"
 )
 
 for mod in "${MODULES[@]}"; do

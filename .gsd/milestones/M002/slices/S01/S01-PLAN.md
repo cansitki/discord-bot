@@ -62,7 +62,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_github_client.py -v` — all tests pass
   - Done when: GitHubClient generates valid JWTs, exchanges for installation tokens, caches tokens, validates repos via API — all proven with mocked httpx responses
 
-- [ ] **T03: Implement GitHub cog with /link-repo and /unlink-repo commands** `est:1h`
+- [x] **T03: Implement GitHub cog with /link-repo and /unlink-repo commands** `est:1h`
   - Why: This is the user-facing surface — the slash commands that let users link and unlink repos. Consumes GitHubClient (T02) and ChannelRepo model (T01).
   - Files: `bot/cogs/github.py`, `bot/bot.py`, `scripts/verify-deploy.sh`
   - Do: Create GitHubCog with /link-repo (validates repo via GitHubClient, stores ChannelRepo, writes action_log, sends confirmation embed) and /unlink-repo (removes binding, writes action_log, sends confirmation). Implement get_tools()/handle_tool_call() stubs (empty tools list for now — S02 adds the create_issue tool). Handle error cases: repo not found, already linked, not linked, missing GitHub config. Register cog in bot.py setup_hook. Update verify-deploy.sh with new module imports.
