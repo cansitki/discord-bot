@@ -55,7 +55,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_config.py tests/test_models.py -v` passes; `.venv/bin/python -c "from bot.config import Config; from bot.models import ChannelRepo"` succeeds
   - Done when: Config loads GitHub vars as optional fields, ChannelRepo model round-trips through database, migration 003 creates channel_repos table, PyJWT importable
 
-- [ ] **T02: Implement GitHubClient with JWT auth and repo validation** `est:1h`
+- [x] **T02: Implement GitHubClient with JWT auth and repo validation** `est:1h`
   - Why: The GitHubClient is the highest-risk piece — JWT generation with RS256, installation token exchange, and token caching. Isolating it ensures the auth flow is correct before wiring it into commands.
   - Files: `bot/github_client.py`, `tests/test_github_client.py`
   - Do: Create GitHubClient class that generates RS256 JWTs using PyJWT, exchanges them for installation tokens via POST /app/installations/{id}/access_tokens, caches tokens with expiry-aware refresh. Implement get_repo(owner, repo) that returns repo metadata or raises. Use httpx.AsyncClient for all API calls. Write comprehensive tests with mocked httpx responses for: JWT generation, token exchange, token caching/refresh, get_repo success, get_repo 404, get_repo error.
