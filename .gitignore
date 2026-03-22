@@ -1,6 +1,8 @@
 
 # ── GSD baseline (auto-generated) ──
 .gsd
+!.gsd/milestones/
+!.gsd/DECISIONS.md
 .DS_Store
 Thumbs.db
 *.swp
@@ -26,3 +28,6 @@ vendor/
 coverage/
 .cache/
 tmp/
+
+# Local SQLite database directory (created at runtime)
+data/
