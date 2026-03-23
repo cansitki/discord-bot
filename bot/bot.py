@@ -6,6 +6,7 @@ import logging
 import os
 
 import discord
+from aiohttp import web
 from discord.ext import commands
 
 from bot.config import Config
@@ -29,6 +30,7 @@ class DiscordBot(commands.Bot):
         self.db: DatabaseManager | None = None
         self.oauth_manager: OAuthManager | None = None
         self._on_ready_fired = False
+        self._webhook_runner: web.AppRunner | None = None
 
         intents = discord.Intents.default()
         intents.guilds = True
@@ -59,13 +61,19 @@ class DiscordBot(commands.Bot):
         await self.load_extension("bot.cogs.server_design")
         await self.load_extension("bot.cogs.assistant")
         await self.load_extension("bot.cogs.auth")
-        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth")
+        await self.load_extension("bot.cogs.github")
+        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth, github")
 
         # Register dynamic items so persistent buttons survive restarts
         from bot.cogs.verification import ApproveButton, DenyButton
         from bot.cogs.server_design import DesignApproveButton, DesignCancelButton
+        from bot.cogs.github import IssueApproveButton, IssueCancelButton
 
-        self.add_dynamic_items(ApproveButton, DenyButton, DesignApproveButton, DesignCancelButton)
+        self.add_dynamic_items(
+            ApproveButton, DenyButton,
+            DesignApproveButton, DesignCancelButton,
+            IssueApproveButton, IssueCancelButton,
+        )
 
         # Sync command tree — guild-specific for fast dev, global for prod
         dev_guild_id = os.getenv("DEV_GUILD_ID")
@@ -77,6 +85,20 @@ class DiscordBot(commands.Bot):
         else:
             await self.tree.sync()
             log.info("Command tree synced globally")
+
+        # Webhook server — start only when secret is configured
+        if self.config.github_webhook_secret:
+            from bot.webhook import create_webhook_app
+
+            self._webhook_app = create_webhook_app(self)
+            self._webhook_runner = web.AppRunner(self._webhook_app)
+            await self._webhook_runner.setup()
+            port = int(os.getenv("PORT", "8080"))
+            site = web.TCPSite(self._webhook_runner, "0.0.0.0", port)
+            await site.start()
+            log.info("Webhook server started on port %d", port)
+        else:
+            log.info("Webhook server not started — GITHUB_WEBHOOK_SECRET not configured")
 
     async def on_ready(self) -> None:
         """Log bot identity on first ready event; ignore reconnect re-fires."""
@@ -104,7 +126,10 @@ class DiscordBot(commands.Bot):
         await self.process_commands(message)
 
     async def close(self) -> None:
-        """Close database connection, then shut down the bot."""
+        """Close database connection, shut down webhook server, then shut down the bot."""
+        if self._webhook_runner is not None:
+            await self._webhook_runner.cleanup()
+            log.info("Webhook server stopped")
         if self.db is not None:
             await self.db.close()
             log.info("Database closed during shutdown")

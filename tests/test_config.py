@@ -60,3 +60,46 @@ class TestConfigFromEnv:
         cfg = Config.from_env()
         with pytest.raises(AttributeError):
             cfg.discord_bot_token = "new-value"  # type: ignore[misc]
+
+    def test_github_vars_none_by_default(self):
+        """GitHub vars are None when not set in environment."""
+        env = {
+            "DISCORD_BOT_TOKEN": "test-token-do-not-use",
+            "ANTHROPIC_API_KEY": "test-api-key-do-not-use",
+        }
+        with patch.dict(os.environ, env, clear=True), \
+             patch("bot.config.load_dotenv"):
+            cfg = Config.from_env()
+            assert cfg.github_app_id is None
+            assert cfg.github_private_key is None
+            assert cfg.github_webhook_secret is None
+
+    def test_github_vars_loaded_when_set(self, tmp_path):
+        """GitHub vars load actual values when set."""
+        env = {
+            "DISCORD_BOT_TOKEN": "test-token-do-not-use",
+            "ANTHROPIC_API_KEY": "test-api-key-do-not-use",
+            "GITHUB_APP_ID": "12345",
+            "GITHUB_PRIVATE_KEY": "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----",
+            "GITHUB_WEBHOOK_SECRET": "webhook-secret-value",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            cfg = Config.from_env()
+        assert cfg.github_app_id == "12345"
+        assert cfg.github_private_key == "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
+        assert cfg.github_webhook_secret == "webhook-secret-value"
+
+    def test_github_vars_empty_string_treated_as_none(self):
+        """Empty string GitHub vars are treated as None (K003)."""
+        env = {
+            "DISCORD_BOT_TOKEN": "test-token-do-not-use",
+            "ANTHROPIC_API_KEY": "test-api-key-do-not-use",
+            "GITHUB_APP_ID": "",
+            "GITHUB_PRIVATE_KEY": "",
+            "GITHUB_WEBHOOK_SECRET": "",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            cfg = Config.from_env()
+        assert cfg.github_app_id is None
+        assert cfg.github_private_key is None
+        assert cfg.github_webhook_secret is None

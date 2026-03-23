@@ -70,6 +70,8 @@ MODULES=(
     "bot.cogs.server_design"
     "bot.cogs.assistant"
     "bot.cogs.auth"
+    "bot.cogs.github"
+    "bot.webhook"
 )
 
 for mod in "${MODULES[@]}"; do
@@ -80,6 +82,7 @@ done
 echo ""
 echo "▸ Key dependencies"
 check "import httpx" $PYTHON -c "import httpx"
+check "import aiohttp" $PYTHON -c "import aiohttp"
 check "import discord" $PYTHON -c "import discord"
 check "import anthropic" $PYTHON -c "import anthropic"
 

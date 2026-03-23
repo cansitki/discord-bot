@@ -79,7 +79,7 @@ class TestMigrations:
     async def test_creates_tables(
         self, db_in_memory: DatabaseManager, migrations_dir: str
     ):
-        """Running migrations creates _migrations, guild_config, action_log."""
+        """Running migrations creates _migrations, guild_config, action_log, channel_repos."""
         await db_in_memory.run_migrations(migrations_dir)
 
         tables = await db_in_memory.fetchall(
@@ -89,6 +89,7 @@ class TestMigrations:
         assert "_migrations" in table_names
         assert "guild_config" in table_names
         assert "action_log" in table_names
+        assert "channel_repos" in table_names
 
     async def test_records_applied_migration(
         self, db_in_memory: DatabaseManager, migrations_dir: str
@@ -109,11 +110,12 @@ class TestMigrations:
 
         rows = await db_in_memory.fetchall("SELECT name FROM _migrations")
         # Should still have exactly the number of migration files (no duplicates)
-        assert len(rows) == 3
+        assert len(rows) == 4
         names = [r["name"] for r in rows]
         assert "001_initial.sql" in names
         assert "002_ai_channel.sql" in names
-        assert "003_oauth_tokens.sql" in names
+        assert "003_channel_repos.sql" in names
+        assert "004_oauth_tokens.sql" in names
 
     async def test_missing_dir_is_noop(self, db_in_memory: DatabaseManager):
         """run_migrations with a nonexistent directory is a warning, not error."""

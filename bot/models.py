@@ -56,3 +56,32 @@ class ActionLog:
             details=row["details"],
             timestamp=row["timestamp"],
         )
+
+
+@dataclass
+class ChannelRepo:
+    """A channel-to-repository binding stored in the ``channel_repos`` table."""
+
+    guild_id: int
+    channel_id: int
+    repo_owner: str
+    repo_name: str
+    linked_by: int
+    linked_at: str | None = None
+
+    @property
+    def repo_full_name(self) -> str:
+        """Return the full repository name as 'owner/repo'."""
+        return f"{self.repo_owner}/{self.repo_name}"
+
+    @classmethod
+    def from_row(cls, row) -> ChannelRepo:
+        """Construct from an ``aiosqlite.Row`` (or any dict-like/subscriptable)."""
+        return cls(
+            guild_id=row["guild_id"],
+            channel_id=row["channel_id"],
+            repo_owner=row["repo_owner"],
+            repo_name=row["repo_name"],
+            linked_by=row["linked_by"],
+            linked_at=row["linked_at"],
+        )
