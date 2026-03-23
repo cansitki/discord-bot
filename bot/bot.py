@@ -58,8 +58,13 @@ class DiscordBot(commands.Bot):
         # Register dynamic items so persistent buttons survive restarts
         from bot.cogs.verification import ApproveButton, DenyButton
         from bot.cogs.server_design import DesignApproveButton, DesignCancelButton
+        from bot.cogs.github import IssueApproveButton, IssueCancelButton
 
-        self.add_dynamic_items(ApproveButton, DenyButton, DesignApproveButton, DesignCancelButton)
+        self.add_dynamic_items(
+            ApproveButton, DenyButton,
+            DesignApproveButton, DesignCancelButton,
+            IssueApproveButton, IssueCancelButton,
+        )
 
         # Sync command tree — guild-specific for fast dev, global for prod
         dev_guild_id = os.getenv("DEV_GUILD_ID")

@@ -51,7 +51,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_github_client.py -v -k create_issue` — all new tests pass; `.venv/bin/python -m pytest tests/test_github_client.py -v` — all existing tests still pass
   - Done when: `GitHubClient.create_issue()` returns parsed JSON on 201, raises `GitHubAPIError` on non-201, and 6+ new tests pass
 
-- [ ] **T02: Implement create_issue tool, preview embed, DynamicItem buttons, and bot wiring** `est:50m`
+- [x] **T02: Implement create_issue tool, preview embed, DynamicItem buttons, and bot wiring** `est:50m`
   - Why: This is the core of S02 — wiring the tool-provider protocol, preview embed, Confirm/Cancel buttons, pending store, action_log, and bot.py registration. All patterns clone directly from `server_design.py` (D011).
   - Files: `bot/cogs/github.py`, `bot/bot.py`, `tests/test_github_cog.py`
   - Do: (1) Add `CREATE_ISSUE_TOOL` schema dict with title/body/labels fields. (2) Populate `get_tools()` to return `[CREATE_ISSUE_TOOL]` when `github_client` is present. (3) Implement `handle_tool_call()` routing for "create_issue" — look up channel_repos, build preview embed, store in `_pending_issues`, send with DynamicItem buttons. (4) Add `IssueApproveButton` / `IssueCancelButton` DynamicItem classes. (5) Approve callback: look up pending, call `create_issue()`, write `issue_created` action_log entry, edit message with URL. (6) Cancel callback: remove pending, edit message. (7) Register DynamicItems in `bot.py`. (8) Add comprehensive tests.
