@@ -51,7 +51,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_webhook.py -v -k "signature or health or security or unrecogn"` — all pass
   - Done when: `bot/webhook.py` exists with working aiohttp app, signature verification rejects bad signatures and accepts valid ones, health endpoint responds 200, ~15 tests pass
 
-- [ ] **T02: Add event embed formatters and routing logic with tests** `est:45m`
+- [x] **T02: Add event embed formatters and routing logic with tests** `est:45m`
   - Why: The domain logic — formatting GitHub events as Discord embeds and routing them to the correct channels — is the user-facing value of this slice. Depends on T01's webhook app skeleton.
   - Files: `bot/webhook.py`, `tests/test_webhook.py`
   - Do: Add embed formatter functions for push (blue, up to 3 commits, compare URL), issues opened/closed (green/purple, title, user, link), pull_request opened/closed/merged (green/purple, merged indicator, link), check_suite completed (green/red/yellow by conclusion). Add reverse channel_repos SQL lookup in the webhook handler: `SELECT guild_id, channel_id FROM channel_repos WHERE repo_owner = ? AND repo_name = ?`. Complete the webhook handler to parse event type → format embed → send to each matched channel via `bot.get_channel().send()`. Handle: missing `repository` key → 400, no matching channels → 200 (accepted, no-op), channel not found by bot → log warning and skip. Write tests for each embed formatter, routing with mock bot.db.fetchall and bot.get_channel, multi-channel routing, missing repo key.
