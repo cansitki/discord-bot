@@ -63,11 +63,13 @@ MODULES=(
     "bot.claude"
     "bot.database"
     "bot.models"
+    "bot.oauth"
     "bot.cogs.ping"
     "bot.cogs.verification"
     "bot.cogs.ai"
     "bot.cogs.server_design"
     "bot.cogs.assistant"
+    "bot.cogs.auth"
 )
 
 for mod in "${MODULES[@]}"; do

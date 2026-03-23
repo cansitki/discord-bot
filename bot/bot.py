@@ -10,6 +10,7 @@ from discord.ext import commands
 
 from bot.config import Config
 from bot.database import DatabaseManager
+from bot.oauth import OAuthManager
 
 log = logging.getLogger(__name__)
 
@@ -20,11 +21,13 @@ class DiscordBot(commands.Bot):
     Attributes:
         config: Frozen Config dataclass with validated env vars.
         db: DatabaseManager instance, created in setup_hook.
+        oauth_manager: OAuthManager for Claude OAuth auth, created in setup_hook.
     """
 
     def __init__(self, config: Config) -> None:
         self.config = config
         self.db: DatabaseManager | None = None
+        self.oauth_manager: OAuthManager | None = None
         self._on_ready_fired = False
 
         intents = discord.Intents.default()
@@ -46,13 +49,17 @@ class DiscordBot(commands.Bot):
         await self.db.run_migrations("migrations")
         log.info("Database ready: %s", self.config.database_path)
 
+        # OAuth manager (for Claude OAuth authentication)
+        self.oauth_manager = OAuthManager(self.db)
+
         # Load cogs
         await self.load_extension("bot.cogs.ping")
         await self.load_extension("bot.cogs.verification")
         await self.load_extension("bot.cogs.ai")
         await self.load_extension("bot.cogs.server_design")
         await self.load_extension("bot.cogs.assistant")
-        log.info("Cogs loaded: ping, verification, ai, server_design, assistant")
+        await self.load_extension("bot.cogs.auth")
+        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth")
 
         # Register dynamic items so persistent buttons survive restarts
         from bot.cogs.verification import ApproveButton, DenyButton

@@ -12,12 +12,13 @@ from dotenv import load_dotenv
 class Config:
     """Bot configuration loaded from environment variables.
 
-    Required vars: DISCORD_BOT_TOKEN, ANTHROPIC_API_KEY.
+    Required vars: DISCORD_BOT_TOKEN.
+    Conditionally required: ANTHROPIC_API_KEY (not required if OAuth is used).
     Optional vars: DATABASE_PATH (default: ./data/bot.db), COMMAND_PREFIX (default: !).
     """
 
     discord_bot_token: str
-    anthropic_api_key: str
+    anthropic_api_key: str  # May be empty string when OAuth is used
     database_path: str
     command_prefix: str
     claude_model: str
@@ -29,6 +30,10 @@ class Config:
         Calls ``dotenv.load_dotenv()`` first so a ``.env`` file is picked up in
         development.  Raises ``ValueError`` naming the missing variable when a
         required env var is absent.  Never logs or prints secret values.
+
+        ``ANTHROPIC_API_KEY`` is no longer strictly required — when absent, the
+        bot can still authenticate via OAuth (``/claude-login``).  A warning is
+        printed but startup continues.
         """
         load_dotenv()
 
@@ -38,18 +43,22 @@ class Config:
                 "Missing required environment variable: DISCORD_BOT_TOKEN"
             )
 
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "Missing required environment variable: ANTHROPIC_API_KEY"
-            )
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
 
         database_path = os.getenv("DATABASE_PATH", "./data/bot.db")
         command_prefix = os.getenv("COMMAND_PREFIX", "!")
         claude_model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 
         # Log loaded variable names (never values) for startup diagnostics
-        loaded_vars = ["DISCORD_BOT_TOKEN", "ANTHROPIC_API_KEY"]
+        loaded_vars = ["DISCORD_BOT_TOKEN"]
+        if api_key:
+            loaded_vars.append("ANTHROPIC_API_KEY")
+        else:
+            print(
+                "Warning: ANTHROPIC_API_KEY not set. "
+                "Use /claude-login to authenticate with your Claude account, "
+                "or set ANTHROPIC_API_KEY for API key auth."
+            )
         if os.getenv("DATABASE_PATH"):
             loaded_vars.append("DATABASE_PATH")
         if os.getenv("COMMAND_PREFIX"):

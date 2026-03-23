@@ -36,6 +36,7 @@ class AICog(commands.Cog):
         self.claude_client = ClaudeClient(
             api_key=bot.config.anthropic_api_key,
             model=bot.config.claude_model,
+            oauth_manager=bot.oauth_manager,
         )
 
     # ------------------------------------------------------------------

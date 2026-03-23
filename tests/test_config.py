@@ -34,12 +34,12 @@ class TestConfigFromEnv:
             with pytest.raises(ValueError, match="DISCORD_BOT_TOKEN"):
                 Config.from_env()
 
-    def test_raises_on_missing_api_key(self):
-        """Config raises ValueError naming ANTHROPIC_API_KEY when missing."""
+    def test_warns_on_missing_api_key(self):
+        """Config warns but does not raise when ANTHROPIC_API_KEY is missing."""
         env = {"DISCORD_BOT_TOKEN": "some-token"}
         with patch.dict(os.environ, env, clear=True):
-            with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
-                Config.from_env()
+            cfg = Config.from_env()
+        assert cfg.anthropic_api_key == ""
 
     def test_raises_on_empty_token(self):
         """Config treats an empty DISCORD_BOT_TOKEN as missing."""
@@ -48,12 +48,12 @@ class TestConfigFromEnv:
             with pytest.raises(ValueError, match="DISCORD_BOT_TOKEN"):
                 Config.from_env()
 
-    def test_raises_on_empty_api_key(self):
-        """Config treats an empty ANTHROPIC_API_KEY as missing."""
+    def test_warns_on_empty_api_key(self):
+        """Config treats an empty ANTHROPIC_API_KEY as absent but doesn't raise."""
         env = {"DISCORD_BOT_TOKEN": "token", "ANTHROPIC_API_KEY": ""}
         with patch.dict(os.environ, env, clear=True):
-            with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
-                Config.from_env()
+            cfg = Config.from_env()
+        assert cfg.anthropic_api_key == ""
 
     def test_config_is_frozen(self, mock_env_full):
         """Config dataclass is immutable (frozen=True)."""
