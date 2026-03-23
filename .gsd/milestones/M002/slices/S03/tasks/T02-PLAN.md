@@ -78,3 +78,10 @@ Add the `/repo-status` hybrid command to `GitHubCog` in `bot/cogs/github.py`. Th
 
 - `bot/cogs/github.py` — modified with `repo_status` hybrid command and `_parse_github_dt` helper added
 - `tests/test_github_cog.py` — modified with `TestRepoStatus` test class added
+
+## Observability Impact
+
+- **New INFO log:** `github_cog.repo_status: guild_id=%d channel_id=%d repo=%s/%s pulls=%d commits=%d` — emitted on every successful `/repo-status` call. Grep for `github_cog.repo_status` to trace command usage.
+- **New ERROR log:** `github_cog.repo_status: API error guild_id=... status=... msg=...` — emitted when `list_pulls` or `list_commits` raises `GitHubAPIError`. Surfaces the HTTP status code and message for debugging.
+- **User-facing error embed:** `❌ Failed to fetch repo status: {message} (HTTP {status_code})` — shown to the user when the GitHub API call fails. Also covers "not configured" and "not linked" error paths with distinct messages.
+- **Inherited signals:** The `list_pulls` and `list_commits` calls each log their own `GET {url} -> {status_code}` at INFO level (from T01). Token acquisition/refresh logs are inherited from `_ensure_token()`.

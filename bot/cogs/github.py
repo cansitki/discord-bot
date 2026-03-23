@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -23,6 +24,17 @@ if TYPE_CHECKING:
     from bot.bot import DiscordBot
 
 log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_github_dt(iso_str: str) -> datetime:
+    """Parse a GitHub ISO 8601 timestamp into a timezone-aware datetime."""
+    return datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+
 
 # ---------------------------------------------------------------------------
 # Tool schema — Anthropic tool format for Claude
@@ -552,6 +564,129 @@ class GitHubCog(commands.Cog):
             description=f"✅ Unlinked #{ctx.channel.name} from `{repo_full_name}`",
             colour=discord.Colour.green(),
         )
+        await ctx.send(embed=embed)
+
+    # ------------------------------------------------------------------
+    # /repo-status
+    # ------------------------------------------------------------------
+
+    @commands.hybrid_command(
+        name="repo-status",
+        description="Show open PRs and recent commits for the linked repo",
+    )
+    @commands.guild_only()
+    async def repo_status(self, ctx: commands.Context) -> None:
+        """Show open PRs and recent commits for the channel's linked repo."""
+        if ctx.guild is None:
+            await ctx.send("This command can only be used in a server.")
+            return
+
+        if self.github_client is None:
+            await ctx.send(
+                "❌ GitHub integration is not configured. "
+                "Set GITHUB_APP_ID and GITHUB_PRIVATE_KEY."
+            )
+            return
+
+        guild_id = ctx.guild.id
+        channel_id = ctx.channel.id
+
+        # Look up the channel's linked repo
+        row = await self.bot.db.fetchone(
+            "SELECT repo_owner, repo_name FROM channel_repos "
+            "WHERE guild_id = ? AND channel_id = ?",
+            (guild_id, channel_id),
+        )
+        if row is None:
+            await ctx.send(
+                "This channel isn't linked to a GitHub repo. "
+                "Use /link-repo to set one up."
+            )
+            return
+
+        repo_owner = row["repo_owner"]
+        repo_name = row["repo_name"]
+
+        try:
+            pulls = await self.github_client.list_pulls(repo_owner, repo_name)
+            commits = await self.github_client.list_commits(repo_owner, repo_name)
+        except GitHubAPIError as exc:
+            log.error(
+                "github_cog.repo_status: API error guild_id=%d channel_id=%d repo=%s/%s status=%d msg=%s",
+                guild_id,
+                channel_id,
+                repo_owner,
+                repo_name,
+                exc.status_code,
+                exc.message,
+            )
+            await ctx.send(
+                f"❌ Failed to fetch repo status: {exc.message} (HTTP {exc.status_code})"
+            )
+            return
+
+        # Build embed
+        embed = discord.Embed(
+            title=f"📊 Status: {repo_owner}/{repo_name}",
+            colour=discord.Colour.blue(),
+        )
+
+        # Open Pull Requests field
+        if pulls:
+            pr_lines = []
+            for pr in pulls:
+                created_dt = _parse_github_dt(pr["created_at"])
+                relative_time = discord.utils.format_dt(created_dt, "R")
+                pr_lines.append(
+                    f"[#{pr['number']} {pr['title']}]({pr['html_url']}) "
+                    f"— @{pr['user']['login']} ({relative_time})"
+                )
+            embed.add_field(
+                name="Open Pull Requests",
+                value="\n".join(pr_lines),
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="Open Pull Requests",
+                value="No open pull requests",
+                inline=False,
+            )
+
+        # Recent Commits field
+        if commits:
+            commit_lines = []
+            for c in commits:
+                commit_dt = _parse_github_dt(c["commit"]["author"]["date"])
+                relative_time = discord.utils.format_dt(commit_dt, "R")
+                first_line = c["commit"]["message"].split("\n", 1)[0]
+                author_name = c["commit"]["author"]["name"]
+                commit_lines.append(
+                    f"[`{c['sha'][:7]}`]({c['html_url']}) {first_line} "
+                    f"— {author_name} ({relative_time})"
+                )
+            embed.add_field(
+                name="Recent Commits",
+                value="\n".join(commit_lines),
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="Recent Commits",
+                value="No recent commits",
+                inline=False,
+            )
+
+        log.info(
+            "github_cog.repo_status: guild_id=%d channel_id=%d repo=%s/%s pulls=%d commits=%d",
+            guild_id,
+            channel_id,
+            repo_owner,
+            repo_name,
+            len(pulls),
+            len(commits),
+        )
+
         await ctx.send(embed=embed)
 
 

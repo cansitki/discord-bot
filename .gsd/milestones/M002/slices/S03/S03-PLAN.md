@@ -39,7 +39,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_github_client.py -v` — all existing + new tests pass
   - Done when: `list_pulls` and `list_commits` tested for success, empty list, 404, 500, and auth header — ~10 new tests
 
-- [ ] **T02: Add /repo-status command to GitHubCog with tests** `est:45m`
+- [x] **T02: Add /repo-status command to GitHubCog with tests** `est:45m`
   - Why: This is the user-facing command that fulfils R006. It looks up the channel's linked repo, calls the new API methods, and renders a Discord embed.
   - Files: `bot/cogs/github.py`, `tests/test_github_cog.py`
   - Do: Add `repo_status` hybrid command (no `manage_channels` permission). Look up `channel_repos` for the channel. Call `list_pulls()` and `list_commits()`. Render embed with title "📊 Status: owner/repo", blue colour, "Open Pull Requests" field (PR lines: `#N title — @author (relative_time)` or "No open pull requests"), "Recent Commits" field (commit lines: `` `sha7` message — author (relative_time) `` or "No recent commits"). Use `discord.utils.format_dt(dt, 'R')` for relative timestamps. Parse GitHub ISO 8601 dates with `datetime.fromisoformat()`. Handle error paths: not linked, no config, no guild, API error. Add `TestRepoStatus` class with ~8-10 tests.

@@ -20,6 +20,7 @@ from bot.cogs.github import (
     GitHubCog,
     IssueApproveButton,
     IssueCancelButton,
+    _parse_github_dt,
     make_issue_view,
 )
 from bot.github_client import GitHubAPIError
@@ -1166,3 +1167,227 @@ class TestIssueCreatedActionLog:
         assert params[2] == "issue_created"  # action_type
         assert params[3] == "my-org/my-repo#7"  # target
         assert params[4] == "https://github.com/my-org/my-repo/issues/7"  # details
+
+
+# ---------------------------------------------------------------------------
+# /repo-status command
+# ---------------------------------------------------------------------------
+
+# Sample GitHub API response data for tests
+_SAMPLE_PRS = [
+    {
+        "number": 10,
+        "title": "Add dark mode",
+        "html_url": "https://github.com/octocat/hello-world/pull/10",
+        "user": {"login": "alice"},
+        "created_at": "2025-06-01T12:00:00Z",
+    },
+    {
+        "number": 11,
+        "title": "Fix typo in README",
+        "html_url": "https://github.com/octocat/hello-world/pull/11",
+        "user": {"login": "bob"},
+        "created_at": "2025-06-02T08:30:00+00:00",
+    },
+]
+
+_SAMPLE_COMMITS = [
+    {
+        "sha": "abc1234567890def",
+        "html_url": "https://github.com/octocat/hello-world/commit/abc1234",
+        "commit": {
+            "message": "Initial commit\n\nAdded project scaffolding.",
+            "author": {"name": "Alice", "date": "2025-06-03T10:00:00Z"},
+        },
+    },
+    {
+        "sha": "def5678901234abc",
+        "html_url": "https://github.com/octocat/hello-world/commit/def5678",
+        "commit": {
+            "message": "Update CI config",
+            "author": {"name": "Bob", "date": "2025-06-02T14:00:00Z"},
+        },
+    },
+]
+
+
+def _linked_db_mock(
+    *, repo_owner: str = "octocat", repo_name: str = "hello-world"
+) -> AsyncMock:
+    """Return a db mock whose fetchone returns a linked channel_repos row."""
+    db = AsyncMock()
+    db.fetchone = AsyncMock(return_value={
+        "repo_owner": repo_owner,
+        "repo_name": repo_name,
+    })
+    return db
+
+
+def _unlinked_db_mock() -> AsyncMock:
+    """Return a db mock whose fetchone returns None (no linked repo)."""
+    db = AsyncMock()
+    db.fetchone = AsyncMock(return_value=None)
+    return db
+
+
+class TestRepoStatus:
+    """Tests for the /repo-status hybrid command."""
+
+    async def test_repo_status_success(self):
+        """Both PRs and commits present — verify embed title, colour, both fields."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(return_value=_SAMPLE_PRS)
+        cog.github_client.list_commits = AsyncMock(return_value=_SAMPLE_COMMITS)
+
+        await cog.repo_status(cog, ctx)
+
+        ctx.send.assert_awaited_once()
+        embed = ctx.send.call_args.kwargs["embed"]
+        assert embed.title == "📊 Status: octocat/hello-world"
+        assert embed.colour == discord.Colour.blue()
+        assert len(embed.fields) == 2
+
+        pr_field = embed.fields[0]
+        assert pr_field.name == "Open Pull Requests"
+        assert "#10" in pr_field.value
+        assert "#11" in pr_field.value
+
+        commit_field = embed.fields[1]
+        assert commit_field.name == "Recent Commits"
+        assert "abc1234" in commit_field.value
+        assert "def5678" in commit_field.value
+
+    async def test_repo_status_empty_prs(self):
+        """No PRs — verify 'No open pull requests' in the embed field."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(return_value=[])
+        cog.github_client.list_commits = AsyncMock(return_value=_SAMPLE_COMMITS)
+
+        await cog.repo_status(cog, ctx)
+
+        embed = ctx.send.call_args.kwargs["embed"]
+        pr_field = next(f for f in embed.fields if f.name == "Open Pull Requests")
+        assert pr_field.value == "No open pull requests"
+
+    async def test_repo_status_empty_commits(self):
+        """No commits — verify 'No recent commits' in the embed field."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(return_value=_SAMPLE_PRS)
+        cog.github_client.list_commits = AsyncMock(return_value=[])
+
+        await cog.repo_status(cog, ctx)
+
+        embed = ctx.send.call_args.kwargs["embed"]
+        commit_field = next(f for f in embed.fields if f.name == "Recent Commits")
+        assert commit_field.value == "No recent commits"
+
+    async def test_repo_status_both_empty(self):
+        """No PRs and no commits — verify both empty-state messages."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(return_value=[])
+        cog.github_client.list_commits = AsyncMock(return_value=[])
+
+        await cog.repo_status(cog, ctx)
+
+        embed = ctx.send.call_args.kwargs["embed"]
+        pr_field = next(f for f in embed.fields if f.name == "Open Pull Requests")
+        commit_field = next(f for f in embed.fields if f.name == "Recent Commits")
+        assert pr_field.value == "No open pull requests"
+        assert commit_field.value == "No recent commits"
+
+    async def test_repo_status_not_linked(self):
+        """Channel not in channel_repos — verify error about linking."""
+        db = _unlinked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        await cog.repo_status(cog, ctx)
+
+        ctx.send.assert_awaited_once()
+        msg = ctx.send.call_args[0][0]
+        assert "linked" in msg.lower()
+        assert "/link-repo" in msg
+
+    async def test_repo_status_no_config(self):
+        """github_client is None — verify config error message."""
+        cog, bot = _make_cog(github_client=None)
+        ctx = _make_mock_ctx()
+
+        await cog.repo_status(cog, ctx)
+
+        ctx.send.assert_awaited_once()
+        msg = ctx.send.call_args[0][0]
+        assert "not configured" in msg.lower()
+
+    async def test_repo_status_no_guild(self):
+        """ctx.guild is None — verify server-only error message."""
+        cog, bot = _make_cog()
+        ctx = _make_mock_ctx()
+        ctx.guild = None
+
+        await cog.repo_status(cog, ctx)
+
+        ctx.send.assert_awaited_once()
+        msg = ctx.send.call_args[0][0]
+        assert "server" in msg.lower()
+
+    async def test_repo_status_api_error(self):
+        """list_pulls raises GitHubAPIError — verify error embed with status code."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(
+            side_effect=GitHubAPIError(403, "Forbidden")
+        )
+
+        await cog.repo_status(cog, ctx)
+
+        ctx.send.assert_awaited_once()
+        msg = ctx.send.call_args[0][0]
+        assert "❌" in msg
+        assert "403" in msg
+        assert "Forbidden" in msg
+
+    async def test_repo_status_embed_format(self):
+        """PR lines contain #number, title, @author; commit lines contain short SHA, message, author."""
+        db = _linked_db_mock()
+        cog, bot = _make_cog(db=db)
+        ctx = _make_mock_ctx()
+
+        cog.github_client.list_pulls = AsyncMock(return_value=_SAMPLE_PRS)
+        cog.github_client.list_commits = AsyncMock(return_value=_SAMPLE_COMMITS)
+
+        await cog.repo_status(cog, ctx)
+
+        embed = ctx.send.call_args.kwargs["embed"]
+
+        # PR field format
+        pr_value = embed.fields[0].value
+        assert "#10" in pr_value
+        assert "Add dark mode" in pr_value
+        assert "@alice" in pr_value
+        assert "#11" in pr_value
+        assert "Fix typo in README" in pr_value
+        assert "@bob" in pr_value
+
+        # Commit field format
+        commit_value = embed.fields[1].value
+        assert "`abc1234`" in commit_value
+        assert "Initial commit" in commit_value
+        assert "Alice" in commit_value
+        assert "`def5678`" in commit_value
+        assert "Update CI config" in commit_value
+        assert "Bob" in commit_value
