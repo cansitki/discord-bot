@@ -636,6 +636,205 @@ class TestExceptions:
 # ===========================================================================
 
 
+# ===========================================================================
+# list_pulls
+# ===========================================================================
+
+
+class TestListPulls:
+    """Test list_pulls API method."""
+
+    def _token_handler(self, request: httpx.Request) -> httpx.Response:
+        """Handle installation token exchange requests."""
+        return httpx.Response(
+            201,
+            json={
+                "token": "ghs_list_pulls_test",
+                "expires_at": _future_expiry(60),
+            },
+        )
+
+    async def test_list_pulls_success(self):
+        """Successful pull request fetch returns a list of PR dicts."""
+        prs = [
+            {"number": 10, "title": "Add feature X", "user": {"login": "alice"}},
+            {"number": 9, "title": "Fix bug Y", "user": {"login": "bob"}},
+        ]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/octocat/Hello-World/pulls" in str(request.url):
+                return httpx.Response(200, json=prs)
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        result = await client.list_pulls("octocat", "Hello-World")
+        assert len(result) == 2
+        assert result[0]["number"] == 10
+        assert result[1]["title"] == "Fix bug Y"
+        await client.close()
+
+    async def test_list_pulls_empty(self):
+        """Returns empty list when no open PRs exist."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/pulls" in str(request.url):
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        result = await client.list_pulls("octocat", "empty-repo")
+        assert result == []
+        await client.close()
+
+    async def test_list_pulls_404(self):
+        """404 response raises GitHubAPIError with status_code 404."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(404, json={"message": "Not Found"})
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.list_pulls("octocat", "nonexistent")
+        assert exc_info.value.status_code == 404
+        await client.close()
+
+    async def test_list_pulls_500(self):
+        """500 response raises GitHubAPIError with status_code 500."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(500, json={"message": "Internal Server Error"})
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.list_pulls("octocat", "broken")
+        assert exc_info.value.status_code == 500
+        await client.close()
+
+    async def test_list_pulls_sends_auth_header(self):
+        """list_pulls sends the installation token as Authorization header."""
+        captured_auth = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/pulls" in str(request.url):
+                captured_auth.append(request.headers.get("authorization"))
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.list_pulls("a", "b")
+        assert captured_auth == ["token ghs_list_pulls_test"]
+        await client.close()
+
+
+# ===========================================================================
+# list_commits
+# ===========================================================================
+
+
+class TestListCommits:
+    """Test list_commits API method."""
+
+    def _token_handler(self, request: httpx.Request) -> httpx.Response:
+        """Handle installation token exchange requests."""
+        return httpx.Response(
+            201,
+            json={
+                "token": "ghs_list_commits_test",
+                "expires_at": _future_expiry(60),
+            },
+        )
+
+    async def test_list_commits_success(self):
+        """Successful commit fetch returns a list of commit dicts."""
+        commits = [
+            {"sha": "abc1234", "commit": {"message": "Initial commit"}},
+            {"sha": "def5678", "commit": {"message": "Add README"}},
+        ]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/octocat/Hello-World/commits" in str(request.url):
+                return httpx.Response(200, json=commits)
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        result = await client.list_commits("octocat", "Hello-World")
+        assert len(result) == 2
+        assert result[0]["sha"] == "abc1234"
+        assert result[1]["commit"]["message"] == "Add README"
+        await client.close()
+
+    async def test_list_commits_empty(self):
+        """Returns empty list when no commits exist."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/commits" in str(request.url):
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        result = await client.list_commits("octocat", "empty-repo")
+        assert result == []
+        await client.close()
+
+    async def test_list_commits_404(self):
+        """404 response raises GitHubAPIError with status_code 404."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(404, json={"message": "Not Found"})
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.list_commits("octocat", "nonexistent")
+        assert exc_info.value.status_code == 404
+        await client.close()
+
+    async def test_list_commits_500(self):
+        """500 response raises GitHubAPIError with status_code 500."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(500, json={"message": "Internal Server Error"})
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.list_commits("octocat", "broken")
+        assert exc_info.value.status_code == 500
+        await client.close()
+
+    async def test_list_commits_sends_auth_header(self):
+        """list_commits sends the installation token as Authorization header."""
+        captured_auth = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/commits" in str(request.url):
+                captured_auth.append(request.headers.get("authorization"))
+                return httpx.Response(200, json=[])
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.list_commits("a", "b")
+        assert captured_auth == ["token ghs_list_commits_test"]
+        await client.close()
+
+
+# ===========================================================================
+# Logging safety — no secrets in logs
+# ===========================================================================
+
+
 class TestLoggingSafety:
     """Verify no secrets leak into log output."""
 

@@ -252,6 +252,73 @@ class GitHubClient:
             f"Failed to create issue in {owner}/{repo}",
         )
 
+    async def list_pulls(
+        self, owner: str, repo: str, *, limit: int = 5
+    ) -> list[dict]:
+        """Fetch open pull requests for a repository.
+
+        Parameters:
+            owner: Repository owner (user or organisation).
+            repo: Repository name.
+            limit: Maximum number of PRs to return (default 5).
+
+        Returns:
+            A list of PR dicts parsed from the JSON response.
+
+        Raises:
+            GitHubAPIError: If the API returns a non-200 status code.
+        """
+        token = await self._ensure_token()
+        url = (
+            f"/repos/{owner}/{repo}/pulls"
+            f"?state=open&sort=updated&direction=desc&per_page={limit}"
+        )
+        resp = await self._client.get(
+            url,
+            headers={"Authorization": f"token {token}"},
+        )
+        log.info("GET %s -> %d", url, resp.status_code)
+
+        if resp.status_code == 200:
+            return resp.json()
+
+        raise GitHubAPIError(
+            resp.status_code,
+            f"Failed to list pull requests for {owner}/{repo}",
+        )
+
+    async def list_commits(
+        self, owner: str, repo: str, *, limit: int = 5
+    ) -> list[dict]:
+        """Fetch recent commits for a repository.
+
+        Parameters:
+            owner: Repository owner (user or organisation).
+            repo: Repository name.
+            limit: Maximum number of commits to return (default 5).
+
+        Returns:
+            A list of commit dicts parsed from the JSON response.
+
+        Raises:
+            GitHubAPIError: If the API returns a non-200 status code.
+        """
+        token = await self._ensure_token()
+        url = f"/repos/{owner}/{repo}/commits?per_page={limit}"
+        resp = await self._client.get(
+            url,
+            headers={"Authorization": f"token {token}"},
+        )
+        log.info("GET %s -> %d", url, resp.status_code)
+
+        if resp.status_code == 200:
+            return resp.json()
+
+        raise GitHubAPIError(
+            resp.status_code,
+            f"Failed to list commits for {owner}/{repo}",
+        )
+
     async def close(self) -> None:
         """Close the underlying HTTP client."""
         await self._client.aclose()

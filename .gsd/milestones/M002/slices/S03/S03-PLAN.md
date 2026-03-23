@@ -23,9 +23,16 @@
 - `.venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v` — all existing tests pass + new `TestListPulls`, `TestListCommits`, `TestRepoStatus` classes pass
 - `.venv/bin/python -m pytest -q` — total test count ≥ 314 with zero failures, zero regressions
 
+## Observability / Diagnostics
+
+- **Runtime signals:** `list_pulls` and `list_commits` log `GET {url} -> {status_code}` at INFO level, matching existing API method conventions. Token acquisition/refresh logs are inherited from `_ensure_token()`.
+- **Inspection surfaces:** `GitHubAPIError.status_code` and `.message` expose failure details programmatically. Error embeds in the `/repo-status` command surface user-visible diagnostics.
+- **Failure visibility:** Non-200 responses raise `GitHubAPIError` with the HTTP status code and a descriptive message including `owner/repo`. These propagate to the command error handler, which renders a user-facing error embed.
+- **Redaction constraints:** Installation tokens (`ghs_*`) are never logged. Private key material is excluded from all log output. The `TestLoggingSafety` class enforces this contractually.
+
 ## Tasks
 
-- [ ] **T01: Add list_pulls and list_commits to GitHubClient with tests** `est:30m`
+- [x] **T01: Add list_pulls and list_commits to GitHubClient with tests** `est:30m`
   - Why: The `/repo-status` command needs GitHub API methods to fetch open PRs and recent commits. These follow the exact same pattern as `get_repo()` and `create_issue()`.
   - Files: `bot/github_client.py`, `tests/test_github_client.py`
   - Do: Add `list_pulls(owner, repo, *, limit=5)` hitting `GET /repos/{owner}/{repo}/pulls?state=open&sort=updated&direction=desc&per_page={limit}` and `list_commits(owner, repo, *, limit=5)` hitting `GET /repos/{owner}/{repo}/commits?per_page={limit}`. Both return `list[dict]`, use `_ensure_token()`, send `Authorization: token {token}`, and raise `GitHubAPIError` on non-200 status. Add `TestListPulls` and `TestListCommits` test classes using the established `_make_client`/`_make_transport` helpers.
