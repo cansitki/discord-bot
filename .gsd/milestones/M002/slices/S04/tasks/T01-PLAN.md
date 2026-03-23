@@ -78,3 +78,10 @@ The architecture follows D017: the aiohttp app is created by a factory function 
 
 - `bot/webhook.py` — New module with `create_webhook_app()`, `verify_signature()`, `handle_webhook()`, `handle_health()`
 - `tests/test_webhook.py` — ~15 passing tests covering signature verification, security, health, and edge cases
+
+## Observability Impact
+
+- **New logger**: `bot.webhook` — logs signature verification failures (WARNING), missing webhook secret (ERROR), and received event types (INFO).
+- **Inspection surface**: `GET /health` endpoint returns 200 "ok" when the webhook server is running — usable as a liveness probe.
+- **Failure visibility**: Signature failures produce WARNING logs with no payload details (redaction-safe). Missing webhook secret produces ERROR log once per rejected request, plus 503 response. Missing headers produce WARNING logs identifying which header is absent.
+- **What a future agent inspects**: `grep "bot.webhook" <logs>` for signature rejections, event reception, and configuration errors. The test suite (`tests/test_webhook.py`) covers all security error paths.

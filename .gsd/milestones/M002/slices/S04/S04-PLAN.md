@@ -44,7 +44,7 @@
 
 ## Tasks
 
-- [ ] **T01: Implement webhook module with signature verification, health endpoint, and security tests** `est:45m`
+- [x] **T01: Implement webhook module with signature verification, health endpoint, and security tests** `est:45m`
   - Why: The aiohttp app factory, HMAC signature verification, and security-layer tests are the highest-risk, most novel components. Getting the test harness (aiohttp test_utils) working first de-risks everything else.
   - Files: `bot/webhook.py`, `tests/test_webhook.py`
   - Do: Create `bot/webhook.py` with `create_webhook_app(bot)` factory, `verify_signature()` function (stdlib hmac+hashlib), `POST /webhook/github` handler (signature check + event type header parsing — stub event routing as 200 for now), `GET /health` handler returning 200 "ok". Write tests using `aiohttp.test_utils.TestClient`/`TestServer`: signature verification (valid, invalid, missing, wrong secret, empty payload), webhook security (401/403/503), health endpoint (GET→200, POST→405), missing X-GitHub-Event header → 400, unrecognised event type → 200.
