@@ -58,7 +58,7 @@
   - Verify: `.venv/bin/python -m pytest tests/test_webhook.py -v` — all ~30 tests pass
   - Done when: All 4 event types produce correctly-coloured embeds with appropriate fields, events route to all linked channels, edge cases handled, ~30 total webhook tests pass
 
-- [ ] **T03: Wire webhook server into bot lifecycle and update infrastructure** `est:30m`
+- [x] **T03: Wire webhook server into bot lifecycle and update infrastructure** `est:30m`
   - Why: The webhook module must integrate into the bot's startup/shutdown lifecycle, and deployment checks must cover the new module. This closes the slice.
   - Files: `bot/bot.py`, `scripts/verify-deploy.sh`, `.env.example`, `tests/test_webhook.py`
   - Do: In `bot/bot.py` `setup_hook`: after cog loading, if `self.config.github_webhook_secret` is set, import `create_webhook_app`, create app, start `AppRunner`/`TCPSite` on `0.0.0.0:PORT` (default 8080). Store runner as `self._webhook_runner`. In `close()`: if runner exists, call `cleanup()`. Add `bot.webhook` to MODULES array in `verify-deploy.sh`. Add `import aiohttp` to key dependencies check. Add PORT documentation to `.env.example`. Add bot integration tests to `test_webhook.py`: startup with secret creates server, startup without secret skips server, shutdown cleans up runner. Run full test suite to confirm zero regressions.

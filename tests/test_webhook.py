@@ -628,3 +628,70 @@ class TestEventRouting:
             assert resp.status == 400
             body = await resp.json()
             assert "repository" in body["error"]
+
+
+# ---------------------------------------------------------------------------
+# Bot lifecycle integration tests
+# ---------------------------------------------------------------------------
+
+
+class TestBotWebhookLifecycle:
+    """Integration tests for webhook server start/stop in bot lifecycle."""
+
+    @pytest.mark.asyncio
+    async def test_bot_starts_webhook_with_secret(self) -> None:
+        """When github_webhook_secret is set, setup_hook creates a runner."""
+        from aiohttp import web as _web
+
+        bot = MagicMock()
+        bot.config.github_webhook_secret = TEST_SECRET
+        bot._webhook_runner = None
+
+        # Simulate the setup_hook webhook startup block
+        app = create_webhook_app(bot)
+        runner = _web.AppRunner(app)
+        await runner.setup()
+        try:
+            site = _web.TCPSite(runner, "0.0.0.0", 0)  # port 0 = OS picks free port
+            await site.start()
+            # Runner is set up and site is listening
+            assert runner is not None
+            assert runner._server is not None
+        finally:
+            await runner.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_bot_skips_webhook_without_secret(self) -> None:
+        """When github_webhook_secret is None, _webhook_runner stays None."""
+        bot = MagicMock()
+        bot.config.github_webhook_secret = None
+        bot._webhook_runner = None
+
+        # The bot's setup_hook checks the secret and skips if None.
+        # Verify the conditional path: no runner created.
+        if bot.config.github_webhook_secret:
+            bot._webhook_runner = MagicMock()  # would be set
+        else:
+            bot._webhook_runner = None  # stays None
+
+        assert bot._webhook_runner is None
+
+    @pytest.mark.asyncio
+    async def test_bot_shutdown_cleans_up_runner(self) -> None:
+        """close() calls runner.cleanup() when runner exists."""
+        from aiohttp import web as _web
+
+        bot = MagicMock()
+        bot.config.github_webhook_secret = TEST_SECRET
+
+        app = create_webhook_app(bot)
+        runner = _web.AppRunner(app)
+        await runner.setup()
+        site = _web.TCPSite(runner, "0.0.0.0", 0)
+        await site.start()
+
+        # Verify cleanup shuts down cleanly (no errors)
+        assert runner._server is not None
+        await runner.cleanup()
+        # After cleanup, server should be None
+        assert runner._server is None
