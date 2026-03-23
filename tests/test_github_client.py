@@ -452,6 +452,163 @@ class TestInstallationDiscovery:
 
 
 # ===========================================================================
+# create_issue
+# ===========================================================================
+
+
+class TestCreateIssue:
+    """Test create_issue API method."""
+
+    def _token_handler(self, request: httpx.Request) -> httpx.Response:
+        """Handle installation token exchange requests."""
+        return httpx.Response(
+            201,
+            json={
+                "token": "ghs_create_issue_test",
+                "expires_at": _future_expiry(60),
+            },
+        )
+
+    async def test_create_issue_success(self):
+        """Successful issue creation returns parsed JSON with number and html_url."""
+        issue_data = {
+            "number": 1,
+            "html_url": "https://github.com/octocat/Hello-World/issues/1",
+            "title": "Bug report",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/octocat/Hello-World/issues" in str(request.url):
+                return httpx.Response(201, json=issue_data)
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        result = await client.create_issue(
+            "octocat", "Hello-World", "Bug report", "Something is broken"
+        )
+        assert result["number"] == 1
+        assert result["html_url"] == "https://github.com/octocat/Hello-World/issues/1"
+        await client.close()
+
+    async def test_create_issue_sends_auth_header(self):
+        """create_issue sends the installation token as Authorization header."""
+        captured_auth = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/" in str(request.url) and request.method == "POST":
+                captured_auth.append(request.headers.get("authorization"))
+                return httpx.Response(
+                    201, json={"number": 1, "html_url": "https://github.com/a/b/issues/1"}
+                )
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.create_issue("a", "b", "Title", "Body")
+        assert captured_auth == ["token ghs_create_issue_test"]
+        await client.close()
+
+    async def test_create_issue_sends_title_and_body(self):
+        """create_issue sends title and body in the JSON request payload."""
+        import json
+
+        captured_body = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/" in str(request.url) and request.method == "POST":
+                captured_body.append(json.loads(request.content))
+                return httpx.Response(
+                    201, json={"number": 1, "html_url": "https://github.com/a/b/issues/1"}
+                )
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.create_issue("a", "b", "My Title", "My Body")
+        assert captured_body[0]["title"] == "My Title"
+        assert captured_body[0]["body"] == "My Body"
+        await client.close()
+
+    async def test_create_issue_includes_labels_when_provided(self):
+        """Labels are included in the JSON payload when provided."""
+        import json
+
+        captured_body = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/" in str(request.url) and request.method == "POST":
+                captured_body.append(json.loads(request.content))
+                return httpx.Response(
+                    201, json={"number": 1, "html_url": "https://github.com/a/b/issues/1"}
+                )
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.create_issue("a", "b", "Title", "Body", labels=["bug", "urgent"])
+        assert captured_body[0]["labels"] == ["bug", "urgent"]
+        await client.close()
+
+    async def test_create_issue_omits_labels_when_none(self):
+        """Labels key is absent from the JSON payload when labels=None."""
+        import json
+
+        captured_body = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            if "/repos/" in str(request.url) and request.method == "POST":
+                captured_body.append(json.loads(request.content))
+                return httpx.Response(
+                    201, json={"number": 1, "html_url": "https://github.com/a/b/issues/1"}
+                )
+            return httpx.Response(404)
+
+        client = _make_client(_make_transport(handler))
+        await client.create_issue("a", "b", "Title", "Body", labels=None)
+        assert "labels" not in captured_body[0]
+        await client.close()
+
+    async def test_create_issue_422_raises_error(self):
+        """422 validation error raises GitHubAPIError with status_code 422."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(
+                422, json={"message": "Validation Failed", "errors": [{"field": "title"}]}
+            )
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.create_issue("octocat", "Hello-World", "", "Body")
+        assert exc_info.value.status_code == 422
+        assert "octocat/Hello-World" in exc_info.value.message
+        await client.close()
+
+    async def test_create_issue_500_raises_error(self):
+        """500 server error raises GitHubAPIError with status_code 500."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "/access_tokens" in str(request.url):
+                return self._token_handler(request)
+            return httpx.Response(
+                500, json={"message": "Internal Server Error"}
+            )
+
+        client = _make_client(_make_transport(handler))
+        with pytest.raises(GitHubAPIError) as exc_info:
+            await client.create_issue("octocat", "broken", "Title", "Body")
+        assert exc_info.value.status_code == 500
+        assert "octocat/broken" in exc_info.value.message
+        await client.close()
+
+
+# ===========================================================================
 # Exception classes
 # ===========================================================================
 

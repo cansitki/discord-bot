@@ -27,6 +27,7 @@
 - `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v` — all new tests pass
 - `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest -x -q` — all 261+ tests pass (zero regressions)
 - `cd /home/coder/discord-bot/.gsd/worktrees/M002 && bash scripts/verify-deploy.sh` — all checks pass
+- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v -k "error or 422 or 500 or not_linked or guard"` — failure-path and error-handling tests pass (GitHubAPIError raised with correct status codes, channel-not-linked guard returns error string)
 
 ## Observability / Diagnostics
 
@@ -43,7 +44,7 @@
 
 ## Tasks
 
-- [ ] **T01: Add GitHubClient.create_issue() API method with tests** `est:25m`
+- [x] **T01: Add GitHubClient.create_issue() API method with tests** `est:25m`
   - Why: The cog needs a `create_issue()` method on GitHubClient to call the GitHub REST API. This is a standalone API method that follows the existing `get_repo()` pattern exactly.
   - Files: `bot/github_client.py`, `tests/test_github_client.py`
   - Do: Add `create_issue(owner, repo, title, body, labels=None)` method — POST `/repos/{owner}/{repo}/issues` expecting 201, raises `GitHubAPIError` on failure. Add tests: success (201), validation error (422), server error (500), auth header present, labels included/omitted.

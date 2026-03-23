@@ -207,6 +207,51 @@ class GitHubClient:
             f"Failed to fetch repository {owner}/{repo}",
         )
 
+    async def create_issue(
+        self,
+        owner: str,
+        repo: str,
+        title: str,
+        body: str,
+        labels: list[str] | None = None,
+    ) -> dict:
+        """Create an issue in a GitHub repository.
+
+        Parameters:
+            owner: Repository owner (user or organisation).
+            repo: Repository name.
+            title: Issue title.
+            body: Issue body (Markdown).
+            labels: Optional list of label names to apply.
+
+        Returns:
+            The parsed JSON response with the created issue data,
+            including ``number`` and ``html_url``.
+
+        Raises:
+            GitHubAPIError: If the API returns a non-201 status code
+                (e.g. 422 for validation errors, 404 for missing repo).
+        """
+        token = await self._ensure_token()
+        url = f"/repos/{owner}/{repo}/issues"
+        payload: dict = {"title": title, "body": body}
+        if labels is not None:
+            payload["labels"] = labels
+        resp = await self._client.post(
+            url,
+            json=payload,
+            headers={"Authorization": f"token {token}"},
+        )
+        log.info("POST %s -> %d", url, resp.status_code)
+
+        if resp.status_code == 201:
+            return resp.json()
+
+        raise GitHubAPIError(
+            resp.status_code,
+            f"Failed to create issue in {owner}/{repo}",
+        )
+
     async def close(self) -> None:
         """Close the underlying HTTP client."""
         await self._client.aclose()

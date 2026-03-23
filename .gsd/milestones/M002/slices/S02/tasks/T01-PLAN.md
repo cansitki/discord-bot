@@ -60,3 +60,9 @@ GitHub API returns `201 Created` with `{"number": N, "html_url": "https://github
 
 - `bot/github_client.py` — modified with new `create_issue()` method (~25 lines)
 - `tests/test_github_client.py` — modified with new `TestCreateIssue` class (~70 lines, 7+ tests)
+
+## Observability Impact
+
+- **New signal:** `bot.github_client` logger emits `POST /repos/{owner}/{repo}/issues -> {status_code}` on every `create_issue()` call, making issue creation attempts visible in structured logs.
+- **Failure visibility:** Non-201 responses raise `GitHubAPIError` with `status_code` and `message` attributes. The error message includes the `owner/repo` for correlation. Callers (future GitHubCog) can log these with context (guild_id, user_id).
+- **Inspection:** `GitHubAPIError.status_code` distinguishes validation errors (422) from server errors (500) and auth errors (401/403), enabling downstream handlers to produce specific user-facing messages.
