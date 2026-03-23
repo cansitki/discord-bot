@@ -41,6 +41,7 @@ class DiscordBot(commands.Bot):
         super().__init__(
             command_prefix=config.command_prefix,
             intents=intents,
+            help_command=None,  # Disable built-in help; we use /help from HelpCog
         )
 
     async def setup_hook(self) -> None:
@@ -62,7 +63,9 @@ class DiscordBot(commands.Bot):
         await self.load_extension("bot.cogs.assistant")
         await self.load_extension("bot.cogs.auth")
         await self.load_extension("bot.cogs.github")
-        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth, github")
+        await self.load_extension("bot.cogs.github_auth")
+        await self.load_extension("bot.cogs.help")
+        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth, github, github_auth, help")
 
         # Register dynamic items so persistent buttons survive restarts
         from bot.cogs.verification import ApproveButton, DenyButton
