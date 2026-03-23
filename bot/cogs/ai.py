@@ -290,6 +290,111 @@ class AICog(commands.Cog):
             )
             await ctx.send("AI channel cleared. I'll only respond to mentions now.")
 
+    # ------------------------------------------------------------------
+    # /ask command — direct AI interaction
+    # ------------------------------------------------------------------
+
+    @commands.hybrid_command(
+        name="ask",
+        description="Ask the AI a question directly",
+    )
+    @commands.guild_only()
+    async def ask(self, ctx: commands.Context, *, question: str) -> None:
+        """Send a question to the AI and get a response.
+
+        This is a direct slash command alternative to mentioning the bot
+        or using the AI channel. Works in any channel.
+
+        Parameters
+        ----------
+        question:
+            The question or message to send to the AI.
+        """
+        if ctx.guild is None:
+            await ctx.send("This command can only be used in a server.")
+            return
+
+        logger.info(
+            "ai_cog.ask: guild_id=%d channel_id=%d user_id=%d question_len=%d",
+            ctx.guild.id,
+            ctx.channel.id,
+            ctx.author.id,
+            len(question),
+        )
+
+        # Build tool list and executor (same as on_message)
+        tools: list[dict[str, Any]] = []
+        tool_cogs: list[Any] = []
+        for cog_instance in self.bot.cogs.values():
+            if cog_instance is self:
+                continue
+            if hasattr(cog_instance, "get_tools") and hasattr(cog_instance, "handle_tool_call"):
+                cog_tools = cog_instance.get_tools()
+                if cog_tools:
+                    tools.extend(cog_tools)
+                    tool_cogs.append(cog_instance)
+
+        tool_executor = None
+        max_tokens = 1024
+        if tools:
+            max_tokens = 4096
+
+            # Create a fake message-like object for tool handlers that need message context
+            fake_message = ctx.message
+
+            async def _tool_executor(
+                tool_name: str, tool_input: dict[str, Any]
+            ) -> str:
+                for tc in tool_cogs:
+                    tool_names = [t["name"] for t in tc.get_tools()]
+                    if tool_name in tool_names:
+                        return await tc.handle_tool_call(tool_name, tool_input, fake_message)
+                return f"Unknown tool: {tool_name}"
+
+            tool_executor = _tool_executor
+        else:
+            tools = None  # type: ignore[assignment]
+
+        try:
+            # Defer the response since AI calls can take a while
+            await ctx.defer()
+
+            response = await self.claude_client.ask(
+                question,
+                tools=tools,
+                tool_executor=tool_executor,
+                max_tokens=max_tokens,
+            )
+
+            # Send response using chunking helper
+            chunks = self._chunk_response(response)
+            for i, chunk in enumerate(chunks):
+                if i == 0:
+                    await ctx.send(chunk)
+                else:
+                    await ctx.channel.send(chunk)
+
+            logger.info(
+                "ai_cog.ask_response: guild_id=%d channel_id=%d chunks=%d total_len=%d",
+                ctx.guild.id,
+                ctx.channel.id,
+                len(chunks),
+                len(response),
+            )
+        except Exception:
+            logger.exception(
+                "ai_cog.ask_error: guild_id=%d channel_id=%d user_id=%d",
+                ctx.guild.id,
+                ctx.channel.id,
+                ctx.author.id,
+            )
+            try:
+                await ctx.send(
+                    "Sorry, something went wrong while processing your question."
+                )
+            except Exception:
+                logger.exception("ai_cog.ask_error: failed to send error message")
+
 
 async def setup(bot: commands.Bot) -> None:
     """Load the AICog into the bot (called by ``load_extension``)."""

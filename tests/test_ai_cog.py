@@ -638,3 +638,147 @@ class TestToolProviderProtocol:
 
         call_kwargs = cog.claude_client.ask.call_args.kwargs
         assert call_kwargs.get("tools") is None
+
+
+# ── /ask command tests ──────────────────────────────────────────────
+
+
+class TestAskCommand:
+    """Tests for the /ask slash command."""
+
+    def test_has_ask_command(self, cog: AICog) -> None:
+        """AICog has an 'ask' command registered."""
+        cmd_names = [c.name for c in cog.get_commands()]
+        assert "ask" in cmd_names
+
+    def test_ask_command_description(self, cog: AICog) -> None:
+        """Ask command has a meaningful description."""
+        cmd = next(c for c in cog.get_commands() if c.name == "ask")
+        assert "ask" in cmd.description.lower() or "ai" in cmd.description.lower()
+
+    @pytest.mark.asyncio()
+    async def test_ask_calls_claude(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask routes question to Claude and returns the response."""
+        mock_bot.cogs = {"AICog": cog}
+        cog.claude_client.ask = AsyncMock(return_value="Here is the answer.")
+
+        ctx = AsyncMock()
+        ctx.guild = MagicMock()
+        ctx.guild.id = 111
+        ctx.channel = MagicMock()
+        ctx.channel.id = 222
+        ctx.channel.send = AsyncMock()
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+        ctx.message = MagicMock()
+
+        await cog.ask.callback(cog, ctx, question="What is Python?")
+
+        cog.claude_client.ask.assert_awaited_once()
+        call_args = cog.claude_client.ask.call_args[0][0]
+        assert "What is Python?" in call_args
+        ctx.send.assert_awaited_once_with("Here is the answer.")
+
+    @pytest.mark.asyncio()
+    async def test_ask_defers_response(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask defers the interaction since AI calls can take a while."""
+        mock_bot.cogs = {"AICog": cog}
+        cog.claude_client.ask = AsyncMock(return_value="Response")
+
+        ctx = AsyncMock()
+        ctx.guild = MagicMock()
+        ctx.guild.id = 111
+        ctx.channel = MagicMock()
+        ctx.channel.id = 222
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+        ctx.message = MagicMock()
+
+        await cog.ask.callback(cog, ctx, question="Hello")
+
+        ctx.defer.assert_awaited_once()
+
+    @pytest.mark.asyncio()
+    async def test_ask_handles_error(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask sends an error message when Claude raises an exception."""
+        mock_bot.cogs = {"AICog": cog}
+        cog.claude_client.ask = AsyncMock(side_effect=RuntimeError("Claude error"))
+
+        ctx = AsyncMock()
+        ctx.guild = MagicMock()
+        ctx.guild.id = 111
+        ctx.channel = MagicMock()
+        ctx.channel.id = 222
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+        ctx.message = MagicMock()
+
+        await cog.ask.callback(cog, ctx, question="Hello")
+
+        ctx.send.assert_awaited_once()
+        error_msg = ctx.send.call_args[0][0]
+        assert "sorry" in error_msg.lower() or "wrong" in error_msg.lower()
+
+    @pytest.mark.asyncio()
+    async def test_ask_rejects_dm(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask rejects DM context (guild is None)."""
+        mock_bot.cogs = {"AICog": cog}
+
+        ctx = AsyncMock()
+        ctx.guild = None
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+
+        await cog.ask.callback(cog, ctx, question="Hello")
+
+        ctx.send.assert_awaited_once()
+        assert "server" in ctx.send.call_args[0][0].lower()
+
+    @pytest.mark.asyncio()
+    async def test_ask_chunks_long_response(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask splits long responses into multiple chunks."""
+        mock_bot.cogs = {"AICog": cog}
+        long_response = "A" * 2500 + "\n\n" + "B" * 2500
+        cog.claude_client.ask = AsyncMock(return_value=long_response)
+
+        ctx = AsyncMock()
+        ctx.guild = MagicMock()
+        ctx.guild.id = 111
+        ctx.channel = MagicMock()
+        ctx.channel.id = 222
+        ctx.channel.send = AsyncMock()
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+        ctx.message = MagicMock()
+
+        await cog.ask.callback(cog, ctx, question="Tell me everything")
+
+        # First chunk goes via ctx.send, subsequent via channel.send
+        assert ctx.send.await_count >= 1
+        total_sends = ctx.send.await_count + ctx.channel.send.await_count
+        assert total_sends >= 2
+
+    @pytest.mark.asyncio()
+    async def test_ask_with_tools(self, cog: AICog, mock_bot: MagicMock) -> None:
+        """/ask passes tools from protocol cogs when available."""
+        tool_a = {"name": "tool_a", "description": "Tool A", "input_schema": {"type": "object", "properties": {}}}
+        cog_a = _make_protocol_cog([tool_a], "CogA")
+        mock_bot.cogs = {"AICog": cog, "CogA": cog_a}
+
+        cog.claude_client.ask = AsyncMock(return_value="Done!")
+
+        ctx = AsyncMock()
+        ctx.guild = MagicMock()
+        ctx.guild.id = 111
+        ctx.channel = MagicMock()
+        ctx.channel.id = 222
+        ctx.author = MagicMock()
+        ctx.author.id = 333
+        ctx.message = MagicMock()
+
+        await cog.ask.callback(cog, ctx, question="Use a tool")
+
+        call_kwargs = cog.claude_client.ask.call_args.kwargs
+        assert len(call_kwargs["tools"]) == 1
+        assert call_kwargs["tools"][0]["name"] == "tool_a"
+        assert call_kwargs["max_tokens"] == 4096
