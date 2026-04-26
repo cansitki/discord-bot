@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify-deploy.sh — Pre-deployment smoke test for Railway
+# verify-deploy.sh — Pre-deployment smoke test
 #
 # Checks that all bot modules import, dependencies resolve, config files
 # exist, and migrations are present. Does NOT require real tokens.
@@ -50,8 +50,6 @@ echo ""
 # ── 1. Config files ──────────────────────────────────────────────────
 echo "▸ Config files"
 check "pyproject.toml exists" test -f pyproject.toml
-check "railway.json exists" test -f railway.json
-check "railway.json is valid JSON" $PYTHON -c "import json; json.load(open('railway.json'))"
 
 # ── 2. Bot module imports ────────────────────────────────────────────
 echo ""
