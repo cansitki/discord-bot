@@ -31,3 +31,8 @@ tmp/
 
 # Local SQLite database directory (created at runtime)
 data/
+
+# ── GSD baseline (auto-generated) ──
+.gsd-id
+.mcp.json
+.bg-shell/
