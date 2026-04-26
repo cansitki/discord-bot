@@ -50,8 +50,8 @@ The cog follows the pattern established by `bot/cogs/ping.py` — a Cog subclass
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.verification import VerificationCog, VerificationView; print('imports ok')"`
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.bot import DiscordBot; print('bot imports ok')"`
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.verification import VerificationCog, VerificationView; print('imports ok')"`
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.bot import DiscordBot; print('bot imports ok')"`
 - `grep -q "bot.cogs.verification" bot/bot.py` — cog is loaded
 - `grep -q "add_view" bot/bot.py` — persistent view is registered
 

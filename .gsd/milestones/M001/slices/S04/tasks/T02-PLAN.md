@@ -52,10 +52,10 @@ The key integration pattern: AICog always passes the server-design tool to Claud
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py -v` — all tests pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_ai_cog.py -v` — all tests pass (existing + new)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py -v` — all tests pass (existing + new)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/ -v` — full suite green
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py -v` — all tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_ai_cog.py -v` — all tests pass (existing + new)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py -v` — all tests pass (existing + new)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/ -v` — full suite green
 
 ## Inputs
 

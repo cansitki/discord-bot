@@ -24,10 +24,10 @@
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py tests/test_ai_cog.py -v` — all tests pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/ -q` — all existing tests still pass (no regressions)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.claude import ClaudeClient; print('import ok')"` — module imports cleanly
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.ai import AICog; print('import ok')"` — cog imports cleanly
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py tests/test_ai_cog.py -v` — all tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/ -q` — all existing tests still pass (no regressions)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.claude import ClaudeClient; print('import ok')"` — module imports cleanly
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.ai import AICog; print('import ok')"` — cog imports cleanly
 - At least one test verifies the tool-use loop cycles correctly (mock tool_use stop_reason → tool execution → final text response)
 - At least one test verifies error handling produces a user-facing error message, not a crash
 - At least one test verifies response chunking splits correctly at >2000 chars

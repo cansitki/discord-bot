@@ -25,9 +25,9 @@
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_webhook.py -v` — all ~30 webhook tests pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/ -q` — total test count ≥ 345, zero failures
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && bash scripts/verify-deploy.sh` — all checks pass including `bot.webhook` import and `aiohttp` dependency
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_webhook.py -v` — all ~30 webhook tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/ -q` — total test count ≥ 345, zero failures
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && bash scripts/verify-deploy.sh` — all checks pass including `bot.webhook` import and `aiohttp` dependency
 
 ## Observability / Diagnostics
 

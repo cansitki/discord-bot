@@ -24,10 +24,10 @@
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v` — all new tests pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest -x -q` — all 261+ tests pass (zero regressions)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && bash scripts/verify-deploy.sh` — all checks pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v -k "error or 422 or 500 or not_linked or guard"` — failure-path and error-handling tests pass (GitHubAPIError raised with correct status codes, channel-not-linked guard returns error string)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v` — all new tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest -x -q` — all 261+ tests pass (zero regressions)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && bash scripts/verify-deploy.sh` — all checks pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M002 && .venv/bin/python -m pytest tests/test_github_client.py tests/test_github_cog.py -v -k "error or 422 or 500 or not_linked or guard"` — failure-path and error-handling tests pass (GitHubAPIError raised with correct status codes, channel-not-linked guard returns error string)
 
 ## Observability / Diagnostics
 

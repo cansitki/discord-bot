@@ -68,7 +68,7 @@ Build the discord.py Bot subclass with async initialization, the `/ping` hybrid 
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -m pytest tests/ -v` — all tests pass (T01 + T02 tests)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -m pytest tests/ -v` — all tests pass (T01 + T02 tests)
 - `python -c "from bot.bot import DiscordBot; from bot.cogs.ping import PingCog"` — imports succeed
 - `test -f .env.example` — env example file exists
 

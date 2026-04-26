@@ -25,13 +25,13 @@
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -m pytest tests/ -v` — all tests pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.config import Config"` — config module importable
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.database import DatabaseManager"` — database module importable
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.bot import DiscordBot"` — bot module importable
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.cogs.ping import PingCog"` — cog importable
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.config import Config; Config.from_env()"` — raises ValueError naming missing DISCORD_BOT_TOKEN when env var absent (failure-path check)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && python -c "from bot.database import DatabaseManager; import asyncio; db = DatabaseManager(':memory:'); asyncio.run(db.connect()); asyncio.run(db.run_migrations('migrations')); asyncio.run(db.close())"` — migrations run against in-memory DB without error (diagnostic surface check)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -m pytest tests/ -v` — all tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.config import Config"` — config module importable
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.database import DatabaseManager"` — database module importable
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.bot import DiscordBot"` — bot module importable
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.cogs.ping import PingCog"` — cog importable
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.config import Config; Config.from_env()"` — raises ValueError naming missing DISCORD_BOT_TOKEN when env var absent (failure-path check)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && python -c "from bot.database import DatabaseManager; import asyncio; db = DatabaseManager(':memory:'); asyncio.run(db.connect()); asyncio.run(db.run_migrations('migrations')); asyncio.run(db.close())"` — migrations run against in-memory DB without error (diagnostic surface check)
 
 ## Observability / Diagnostics
 

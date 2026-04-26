@@ -45,9 +45,9 @@ The cog stores pending proposals in an in-memory dict keyed by `(guild_id, messa
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import ServerDesignCog, PROPOSE_TOOL, sanitize_channel_name, validate_proposal, render_proposal_embed, DesignApproveButton, DesignCancelButton; print('All imports OK')"`
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import sanitize_channel_name; assert sanitize_channel_name('General Chat') == 'general-chat'; assert sanitize_channel_name('A' * 200) == 'a' * 100; print('Sanitizer OK')"`
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.claude import ClaudeClient; import inspect; sig = inspect.signature(ClaudeClient.ask); assert 'max_tokens' in sig.parameters; print('max_tokens param OK')"`
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import ServerDesignCog, PROPOSE_TOOL, sanitize_channel_name, validate_proposal, render_proposal_embed, DesignApproveButton, DesignCancelButton; print('All imports OK')"`
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import sanitize_channel_name; assert sanitize_channel_name('General Chat') == 'general-chat'; assert sanitize_channel_name('A' * 200) == 'a' * 100; print('Sanitizer OK')"`
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.claude import ClaudeClient; import inspect; sig = inspect.signature(ClaudeClient.ask); assert 'max_tokens' in sig.parameters; print('max_tokens param OK')"`
 
 ## Inputs
 

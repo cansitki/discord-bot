@@ -23,9 +23,9 @@
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py -v` — all pass
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_ai_cog.py -v` — existing + new tests pass (AICog now passes tools)
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py -v` — existing + new max_tokens test pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py -v` — all pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_ai_cog.py -v` — existing + new tests pass (AICog now passes tools)
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_claude.py -v` — existing + new max_tokens test pass
 - Test for 10+ channel build verifies all `create_text_channel`/`create_voice_channel` calls made without error
 - Test for partial failure verifies error is reported and already-created resources are listed
 
@@ -48,14 +48,14 @@
   - Why: This is the core implementation — the cog that defines the `propose_server_design` tool, validates Claude's output, renders proposal embeds, handles Approve/Cancel buttons via DynamicItem, and executes the approved plan by creating roles→categories→channels sequentially. Also adds `max_tokens` parameter to `ClaudeClient.ask()` since the hardcoded 1024 will truncate complex proposals.
   - Files: `bot/cogs/server_design.py`, `bot/claude.py`
   - Do: (1) Add optional `max_tokens` param to `ClaudeClient.ask()` and `_run_message_loop()`, defaulting to 1024 for backward compat. (2) Create `bot/cogs/server_design.py` with: `PROPOSE_TOOL` schema dict, `validate_proposal()` for schema validation, `sanitize_channel_name()` utility, `render_proposal_embed()` that builds a Discord Embed from the plan JSON, `DesignApproveButton`/`DesignCancelButton` as DynamicItem subclasses (pattern from verification.py, custom_id encodes guild_id + proposal hash), `ServerDesignCog` class with `_pending_proposals` dict, `handle_propose()` tool executor method, and `_execute_build()` that creates roles first, then categories, then channels with permission overwrites — all sequential with action_log entries. (3) Channel name sanitizer: lowercase, replace spaces with hyphens, strip non-alphanumeric except hyphens, clamp to 1-100 chars.
-  - Verify: `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import ServerDesignCog, PROPOSE_TOOL; print('OK')"` succeeds
+  - Verify: `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -c "from bot.cogs.server_design import ServerDesignCog, PROPOSE_TOOL; print('OK')"` succeeds
   - Done when: `bot/cogs/server_design.py` exists with all components, `ClaudeClient.ask()` accepts `max_tokens` param, `sanitize_channel_name()` handles edge cases
 
 - [x] **T02: Wire server design into AICog and bot, add migration and comprehensive tests** `est:2h`
   - Why: The cog exists but isn't loaded or connected. AICog needs to pass server-design tools to Claude. Bot needs to register the cog and its DynamicItems. Tests must prove the full propose→approve→build flow works and that 10+ channel designs complete without errors.
   - Files: `bot/cogs/ai.py`, `bot/bot.py`, `migrations/003_server_design.sql`, `tests/test_server_design.py`, `tests/test_ai_cog.py`, `tests/test_claude.py`
   - Do: (1) In `bot/bot.py` `setup_hook`: add `load_extension("bot.cogs.server_design")`, import and register `DesignApproveButton`/`DesignCancelButton` as dynamic items. (2) In `bot/cogs/ai.py`: get `ServerDesignCog` from bot, build tool list and executor, pass to `claude_client.ask(clean_content, tools=..., tool_executor=..., max_tokens=4096)`. (3) Add `migrations/003_server_design.sql` — no new tables needed (proposals are in-memory, actions use existing `action_log`), but add a comment migration as a no-op or skip if truly unnecessary. (4) Write `tests/test_server_design.py` covering: tool schema format, proposal validation, channel name sanitization, embed rendering, approve/cancel button callbacks with mocked guild, build execution order (roles→categories→channels), permission overwrites, partial failure handling, 10+ channel bulk build. (5) Add test in `tests/test_ai_cog.py` verifying tools are passed to Claude. (6) Add test in `tests/test_claude.py` verifying max_tokens parameter.
-  - Verify: `cd /home/coder/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py tests/test_ai_cog.py tests/test_claude.py -v`
+  - Verify: `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && .venv/bin/python -m pytest tests/test_server_design.py tests/test_ai_cog.py tests/test_claude.py -v`
   - Done when: All tests pass, cog is loaded in bot.py, AICog passes tools to Claude, 10+ channel test proves rate-limit safety
 
 ## Files Likely Touched

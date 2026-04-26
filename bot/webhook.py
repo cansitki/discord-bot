@@ -338,9 +338,10 @@ async def handle_webhook(request: web.Request) -> web.Response:
         )
 
     # --- Channel routing via reverse channel_repos lookup ---
+    # Repo names are case-insensitive on GitHub; we store + match lowercase.
     rows = await bot.db.fetchall(
         "SELECT guild_id, channel_id FROM channel_repos WHERE repo_owner = ? AND repo_name = ?",
-        (repo_owner, repo_name),
+        (repo_owner.lower(), repo_name.lower()),
     )
 
     sent_count = 0

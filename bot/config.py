@@ -29,6 +29,8 @@ class Config:
     twitter_username: str | None = None
     twitter_email: str | None = None
     twitter_password: str | None = None
+    twitter_auth_token: str | None = None
+    twitter_ct0: str | None = None
     twitter_cookies_path: str = "./data/twitter_cookies.json"
 
     @classmethod
@@ -66,6 +68,8 @@ class Config:
         twitter_username = os.getenv("TWITTER_USERNAME") or None
         twitter_email = os.getenv("TWITTER_EMAIL") or None
         twitter_password = os.getenv("TWITTER_PASSWORD") or None
+        twitter_auth_token = os.getenv("TWITTER_AUTH_TOKEN") or None
+        twitter_ct0 = os.getenv("TWITTER_CT0") or None
         twitter_cookies_path = os.getenv(
             "TWITTER_COOKIES_PATH", "./data/twitter_cookies.json"
         )
@@ -94,6 +98,8 @@ class Config:
             loaded_vars.append("GITHUB_WEBHOOK_SECRET")
         if twitter_username:
             loaded_vars.append("TWITTER_USERNAME")
+        if twitter_auth_token:
+            loaded_vars.append("TWITTER_AUTH_TOKEN")
         print(f"Config loaded: {', '.join(loaded_vars)}")
 
         return cls(
@@ -108,5 +114,7 @@ class Config:
             twitter_username=twitter_username,
             twitter_email=twitter_email,
             twitter_password=twitter_password,
+            twitter_auth_token=twitter_auth_token,
+            twitter_ct0=twitter_ct0,
             twitter_cookies_path=twitter_cookies_path,
         )

@@ -85,7 +85,9 @@ class DiscordBot(commands.Bot):
             guild = discord.Object(id=int(dev_guild_id))
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
-            log.info("Command tree synced to dev guild: %s", dev_guild_id)
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
+            log.info("Command tree synced to dev guild: %s (global cleared)", dev_guild_id)
         else:
             await self.tree.sync()
             log.info("Command tree synced globally")

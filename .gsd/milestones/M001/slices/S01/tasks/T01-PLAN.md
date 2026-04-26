@@ -63,7 +63,7 @@ Build the entire data foundation that every downstream slice depends on: environ
 
 ## Verification
 
-- `cd /home/coder/discord-bot/.gsd/worktrees/M001 && pip install -e ".[dev]" && python -m pytest tests/test_config.py tests/test_database.py tests/test_models.py -v` — all tests pass
+- `cd /home/coder/projects/discord-bot/.gsd/worktrees/M001 && pip install -e ".[dev]" && python -m pytest tests/test_config.py tests/test_database.py tests/test_models.py -v` — all tests pass
 - `python -c "from bot.config import Config; from bot.database import DatabaseManager; from bot.models import GuildConfig, ActionLog"` — all imports succeed
 
 ## Inputs

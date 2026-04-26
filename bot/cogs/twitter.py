@@ -39,7 +39,9 @@ class TwitterCog(commands.Cog):
             log.warning("twikit not installed — TwitterCog disabled")
             return
         cfg = self.bot.config
-        if not (cfg.twitter_username and cfg.twitter_password):
+        has_cookie_auth = cfg.twitter_auth_token and cfg.twitter_ct0
+        has_password_auth = cfg.twitter_username and cfg.twitter_password
+        if not (has_cookie_auth or has_password_auth):
             log.info("Twitter credentials not configured — TwitterCog polling disabled")
             return
         self._client = TwikitClient("en-US")
@@ -54,10 +56,24 @@ class TwitterCog(commands.Cog):
     # ── Authentication ───────────────────────────────────────────────
 
     async def _try_auth(self) -> None:
-        """Load saved cookies or perform fresh login."""
+        """Authenticate using cookie env vars, saved cookie file, or password login."""
         if self._client is None:
             return
-        cookies_path = self.bot.config.twitter_cookies_path
+
+        cfg = self.bot.config
+        if cfg.twitter_auth_token and cfg.twitter_ct0:
+            try:
+                self._client.set_cookies({
+                    "auth_token": cfg.twitter_auth_token,
+                    "ct0": cfg.twitter_ct0,
+                })
+                self._authenticated = True
+                log.info("Twitter authenticated via cookie env vars")
+                return
+            except Exception:
+                log.warning("Failed to set Twitter cookies from env, trying fallbacks")
+
+        cookies_path = cfg.twitter_cookies_path
         if Path(cookies_path).exists():
             try:
                 self._client.load_cookies(cookies_path)
@@ -105,8 +121,8 @@ class TwitterCog(commands.Cog):
                 await self._check_feed(feed)
             except Exception as exc:
                 if "unauthorized" in str(exc).lower() or "401" in str(exc):
-                    log.warning("Twitter auth expired, re-logging in")
-                    await self._login()
+                    log.warning("Twitter auth expired, re-authenticating")
+                    await self._try_auth()
                     if self._authenticated:
                         try:
                             await self._check_feed(feed)

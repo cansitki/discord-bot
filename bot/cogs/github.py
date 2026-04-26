@@ -465,11 +465,11 @@ class GitHubCog(commands.Cog):
             )
             return
 
-        # Insert the binding
+        # Insert the binding (normalize to lowercase — GitHub repo names are case-insensitive)
         await self.bot.db.execute(
             "INSERT INTO channel_repos (guild_id, channel_id, repo_owner, repo_name, linked_by) "
             "VALUES (?, ?, ?, ?, ?)",
-            (guild_id, channel_id, owner, repo_name, ctx.author.id),
+            (guild_id, channel_id, owner.lower(), repo_name.lower(), ctx.author.id),
         )
 
         # Write action_log entry
