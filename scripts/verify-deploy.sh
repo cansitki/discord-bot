@@ -72,6 +72,7 @@ MODULES=(
     "bot.cogs.auth"
     "bot.cogs.github"
     "bot.webhook"
+    "bot.cogs.twitter"
 )
 
 for mod in "${MODULES[@]}"; do
@@ -85,6 +86,7 @@ check "import httpx" $PYTHON -c "import httpx"
 check "import aiohttp" $PYTHON -c "import aiohttp"
 check "import discord" $PYTHON -c "import discord"
 check "import anthropic" $PYTHON -c "import anthropic"
+check "import twikit" $PYTHON -c "import twikit"
 
 # ── 4. Migrations ────────────────────────────────────────────────────
 echo ""

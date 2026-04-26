@@ -26,6 +26,10 @@ class Config:
     github_app_id: str | None = None
     github_private_key: str | None = None
     github_webhook_secret: str | None = None
+    twitter_username: str | None = None
+    twitter_email: str | None = None
+    twitter_password: str | None = None
+    twitter_cookies_path: str = "./data/twitter_cookies.json"
 
     @classmethod
     def from_env(cls) -> Config:
@@ -58,6 +62,14 @@ class Config:
         github_private_key = os.getenv("GITHUB_PRIVATE_KEY") or None
         github_webhook_secret = os.getenv("GITHUB_WEBHOOK_SECRET") or None
 
+        # Optional Twitter/X feed watcher credentials
+        twitter_username = os.getenv("TWITTER_USERNAME") or None
+        twitter_email = os.getenv("TWITTER_EMAIL") or None
+        twitter_password = os.getenv("TWITTER_PASSWORD") or None
+        twitter_cookies_path = os.getenv(
+            "TWITTER_COOKIES_PATH", "./data/twitter_cookies.json"
+        )
+
         # Log loaded variable names (never values) for startup diagnostics
         loaded_vars = ["DISCORD_BOT_TOKEN"]
         if api_key:
@@ -80,6 +92,8 @@ class Config:
             loaded_vars.append("GITHUB_PRIVATE_KEY")
         if github_webhook_secret:
             loaded_vars.append("GITHUB_WEBHOOK_SECRET")
+        if twitter_username:
+            loaded_vars.append("TWITTER_USERNAME")
         print(f"Config loaded: {', '.join(loaded_vars)}")
 
         return cls(
@@ -91,4 +105,8 @@ class Config:
             github_app_id=github_app_id,
             github_private_key=github_private_key,
             github_webhook_secret=github_webhook_secret,
+            twitter_username=twitter_username,
+            twitter_email=twitter_email,
+            twitter_password=twitter_password,
+            twitter_cookies_path=twitter_cookies_path,
         )

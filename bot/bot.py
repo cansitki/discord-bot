@@ -65,7 +65,8 @@ class DiscordBot(commands.Bot):
         await self.load_extension("bot.cogs.github")
         await self.load_extension("bot.cogs.github_auth")
         await self.load_extension("bot.cogs.help")
-        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth, github, github_auth, help")
+        await self.load_extension("bot.cogs.twitter")
+        log.info("Cogs loaded: ping, verification, ai, server_design, assistant, auth, github, github_auth, help, twitter")
 
         # Register dynamic items so persistent buttons survive restarts
         from bot.cogs.verification import ApproveButton, DenyButton

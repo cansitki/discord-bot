@@ -85,3 +85,31 @@ class ChannelRepo:
             linked_by=row["linked_by"],
             linked_at=row["linked_at"],
         )
+
+
+@dataclass
+class TwitterFeed:
+    """A watched Twitter/X profile bound to a Discord channel."""
+
+    guild_id: int
+    channel_id: int
+    twitter_handle: str
+    created_by: int
+    id: int | None = None
+    last_tweet_id: str | None = None
+    created_at: str | None = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    @classmethod
+    def from_row(cls, row) -> TwitterFeed:
+        """Construct from an ``aiosqlite.Row`` (or any dict-like/subscriptable)."""
+        return cls(
+            id=row["id"],
+            guild_id=row["guild_id"],
+            channel_id=row["channel_id"],
+            twitter_handle=row["twitter_handle"],
+            last_tweet_id=row["last_tweet_id"],
+            created_by=row["created_by"],
+            created_at=row["created_at"],
+        )

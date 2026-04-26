@@ -14,6 +14,8 @@ bot/cogs/ai.py
 bot/cogs/assistant.py
 bot/cogs/auth.py
 bot/cogs/github.py
+bot/cogs/github_auth.py
+bot/cogs/help.py
 bot/cogs/ping.py
 bot/cogs/server_design.py
 bot/cogs/verification.py
@@ -30,8 +32,10 @@ tests/test_claude.py
 tests/test_claude_oauth.py
 tests/test_config.py
 tests/test_database.py
+tests/test_github_auth_cog.py
 tests/test_github_client.py
 tests/test_github_cog.py
+tests/test_help_cog.py
 tests/test_models.py
 tests/test_oauth.py
 tests/test_ping.py
