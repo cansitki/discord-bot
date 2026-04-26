@@ -21,6 +21,30 @@ try:
     from twikit import Client as TwikitClient
 
     TWIKIT_AVAILABLE = True
+
+    # Monkey-patch: twikit User.__init__ crashes with KeyError when the API
+    # omits 'withheld_in_countries'.  Wrap __init__ so it survives reinstalls.
+    def _patch_user_init(cls):  # noqa: ANN001
+        _orig = cls.__init__
+
+        def _patched(self, client, data, *a, **kw):  # noqa: ANN001
+            legacy = data.get("legacy", {})
+            legacy.setdefault("withheld_in_countries", [])
+            _orig(self, client, data, *a, **kw)
+
+        cls.__init__ = _patched
+
+    from twikit.user import User as _TwikitUser
+
+    _patch_user_init(_TwikitUser)
+
+    try:
+        from twikit.guest.user import User as _GuestUser
+
+        _patch_user_init(_GuestUser)
+    except ImportError:
+        pass
+
 except ImportError:
     TWIKIT_AVAILABLE = False
     TwikitClient = None  # type: ignore[assignment,misc]
