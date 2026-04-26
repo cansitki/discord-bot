@@ -15,7 +15,7 @@ dependencies = [
     "httpx>=0.27",
     "PyJWT[crypto]>=2.8",
     "aiohttp>=3.9",
-    "twikit>=2.0",
+    "twikit @ git+https://codeberg.org/phin/twikit",
 ]
 
 [project.optional-dependencies]
